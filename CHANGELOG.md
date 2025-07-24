@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/terraharbor/backend/compare/v0.1.1...v0.1.2) (2025-07-24)
+
+
+### Miscellaneous Chores
+
+* **deps:** update traefik/whoami docker tag to v1.11.0 ([#6](https://github.com/terraharbor/backend/issues/6)) ([8488651](https://github.com/terraharbor/backend/commit/84886513e06e891fec20b7f0db191da828970343))
+
 ## [0.1.1](https://github.com/terraharbor/backend/compare/v0.1.0...v0.1.1) (2025-07-24)
 
 
