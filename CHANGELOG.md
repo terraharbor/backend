@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/terraharbor/backend/compare/v0.1.0...v0.1.1) (2025-07-24)
+
+
+### Miscellaneous Chores
+
+* trigger release ([cc953e3](https://github.com/terraharbor/backend/commit/cc953e36d93dc91f88a0c252591e3b82625252af))
+
+
+### Continuous Integration
+
+* add/edit docker-build.yaml ([adcd08d](https://github.com/terraharbor/backend/commit/adcd08da695846ff1d911d0b48a5dd224ef59f6d))
+
 ## 0.1.0 (2025-07-24)
 
 
