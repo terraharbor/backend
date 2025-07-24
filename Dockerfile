@@ -1,4 +1,4 @@
-FROM traefik/whoami:v1.10.4
+FROM traefik/whoami:v1.11.0@sha256:200689790a0a0ea48ca45992e0450bc26ccab5307375b41c84dfc4f2475937ab
 
 ENTRYPOINT ["/whoami"]
 EXPOSE 80
