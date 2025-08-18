@@ -1,5 +1,5 @@
 # TODO REALLY VULNERABLE
-FROM postgres:16.3
+FROM postgres:17.6.1
 
 # Set environment variables for default database and user
 ENV POSTGRES_DB=mydatabase
