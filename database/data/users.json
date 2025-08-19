@@ -1,0 +1,9 @@
+{
+    "user": {
+        "username": "user",
+        "disabled": true,
+        "sha512_hash": "6ae2d3bfb3b95517b358fcdb29f7743246101ebf13f797d8244df795eec2d1d769a41c059dc37beadac8e40cecab4352764336a90302920ddeb1a6c6df4e8a00",
+        "token": null,
+        "token_validity": null
+    }
+}
