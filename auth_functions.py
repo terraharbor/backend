@@ -162,7 +162,7 @@ def is_token_valid(token: str) -> bool:
                 created_at, ttl, disabled = row
                 if disabled:
                     return False
-                # Vérifie que le token n'est pas expiré
+                # Verifies that the token has not expired
                 cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
                 valid = cur.fetchone()[0]
                 return valid
