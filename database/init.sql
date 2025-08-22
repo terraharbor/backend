@@ -1,5 +1,3 @@
--- TODO
-
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -11,6 +9,7 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     token VARCHAR(255) NOT NULL,
+    -- ttl INTERVAL NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

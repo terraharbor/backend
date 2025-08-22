@@ -6,9 +6,9 @@ import time
 
 # DB config from env vars or defaults
 DB_CONFIG = {
-    "dbname": os.getenv("POSTGRES_DB"),
-    "user": os.getenv("POSTGRES_USER"),
-    "password": os.getenv("POSTGRES_PASSWORD"),
+    "dbname": os.getenv("PG_DATABASE_NAME"),
+    "user": os.getenv("PG_DATABASE_USER"),
+    "password": os.getenv("PG_DATABASE_PASSWORD"),
     "host": os.getenv("POSTGRES_HOST"),
     "port": int(os.getenv("POSTGRES_PORT", "5432")),
 }
