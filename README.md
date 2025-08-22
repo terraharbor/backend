@@ -6,7 +6,7 @@ Backend of the TerraHarbor application written in Python and using FastAPI
 In order to locally test this repository, clone this repo locally and the [infrastructure](https://github.com/terraharbor/infrastructure). Comment the services you don't want to test or you did not download (ex: frontend). <br>
 Execute
 ```zsh
-docker-compose -f docker-compose-local.yaml
+docker-compose -f docker-compose-local.yaml build && docker-compose -f docker-compose-local.yaml up
 ```
 in `infrastructure/docker-compose/ in order to start the containers.<br>
 when the app is running, visit `http://localhost:8000/docs/<br>
