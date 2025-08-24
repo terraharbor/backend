@@ -1,3 +1,5 @@
+from typing import Optional
+
 from user import User
 import json
 import os
@@ -89,6 +91,7 @@ def register_user(user: User) -> None:
     except Exception as e:
         raise RuntimeError(f"Failed to register user: {e}")
 
+
 def update_user_token(username: str, token: str) -> None:
     """
     Update the user's token in the user store.
@@ -109,14 +112,46 @@ def update_user_token(username: str, token: str) -> None:
     except Exception as e:
         raise RuntimeError(f"Failed to update user token: {e}")
 
+
+def disable_user(username: str, token: str) -> None:
+    """
+    Disable a given user in the system. Needs its last token for safety (preventing user delog solely through name)
+    """
+    try:
+        with open(USERS_FILE, "r") as f:
+            users_dict = json.load(f)
+
+        # Doubly check
+        if users_dict[username]["token"] != token:
+            raise ValueError("Provided token does not match user token in store")
+
+        users_dict[username]["disabled"] = True
+
+        with open(USERS_FILE, "w") as s:
+            json.dump(users_dict, s, indent=4)
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to disable user: {e}")
+
+
 def is_token_valid(token: str) -> bool:
     """
     Check if the provided token is valid.
     This function should check the token's validity against the user store.
     """
-    user = decode_token(token)
-    if user is None or user.disabled:
+    user: Optional[User] = decode_token(token)
+    # No response from decode (non-existing user) or user disabled
+    if not user or user.disabled:
         return False
-
-    current_time = int(time.time())
-    return user.token_validity is not None and user.token_validity > current_time
+    else:
+        # Check if user token is still valid
+        current_time = int(time.time())
+        if current_time > user.token_validity:
+            # User has been inactive/unlogged for too long, disable it
+            disable_user(user.username, token)
+            return False
+        else:
+            # Refresh the token
+            # Proposal, refresh the token as long as User shows proof of activity
+            update_user_token(user.name, token)
+            return True
