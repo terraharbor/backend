@@ -5,6 +5,10 @@ from user import User
 import psycopg2
 import os
 import time
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 DB_CONFIG = {
     "dbname": os.getenv("POSTGRES_DB"),
@@ -50,7 +54,7 @@ def decode_token(token: str) -> User | None:
         try:
             conn.close()
         except:
-            pass
+            logger.error("Error closing database connection")
     return None
 
 
@@ -62,7 +66,7 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,))
+                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username))
                 row = cur.fetchone()
                 if row:
                     username, password_hash, disabled = row
@@ -73,7 +77,7 @@ def get_user(username: str) -> User | None:
         try:
             conn.close()
         except:
-            pass
+            logger.error("Error closing database connection")
     return None
 
 def get_current_user(token) -> str | None:
@@ -110,7 +114,7 @@ def register_user(user: User) -> None:
         try:
             conn.close()
         except:
-            pass
+            logger.error("Error closing database connection")
 
 
 
@@ -140,7 +144,7 @@ def update_user_token(username: str, token: str) -> None:
         try:
             conn.close()
         except:
-            pass
+            logger.error("Error closing database connection")
 
 
 
