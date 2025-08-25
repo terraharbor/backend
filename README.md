@@ -19,6 +19,7 @@ There are currently several basic endpoints:
 > doc format: `METHOD`:`ENDPOINT` 
 
 * `POST`:`/register`: registers a user thanks to a username and a password. Returns the creds for debug reasons for the moment.
+* `POST`:`/login`: Send a username and a password to this endpoints, and this user's token will be returned. A new one can be created here. Validity for one hour (user token for the frontend).
 * `POST`:`/token`: Send a username and a password to this endpoints, and this user's token will be returned. A new one can be created here. Validity for one hour (user token for the frontend).
 * `LOCK`:`/state/{state}`: Locks a state file.
 * `UNLOCK`:`/state/{state}`: Unlocks a state file.
