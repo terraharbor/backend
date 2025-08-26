@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/terraharbor/backend/compare/v0.1.2...v0.1.3) (2025-08-26)
+
+
+### Features
+
+* **backend:** moved backend files ([72c8969](https://github.com/terraharbor/backend/commit/72c8969e5670927454f94543ec1f8bc080cb18d3))
+* **backend:** moved backend files ([97f4a9d](https://github.com/terraharbor/backend/commit/97f4a9db2cfdd01a825827f3dfc12072d1c81bee))
+
 ## [0.1.2](https://github.com/terraharbor/backend/compare/v0.1.1...v0.1.2) (2025-07-24)
 
 
