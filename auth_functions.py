@@ -19,7 +19,10 @@ DB_CONFIG = {
 }
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    logger.info("Connecting to the database...")
+    connection = psycopg2.connect(**DB_CONFIG)
+    logger.info("Database connection established.")
+    return connection
 
 
 def decode_token(token: str) -> User | None:
@@ -66,12 +69,13 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username))
+                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
                     username, password_hash, disabled = row
                     return User(username=username, sha512_hash=password_hash, disabled=disabled)
     except Exception as e:
+        logger.error(f"Error retrieving user '{username}': {e}")
         return None
     finally:
         try:
