@@ -53,6 +53,21 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     update_user_token(user.username, access_token)
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/login", tags=["auth"])
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> dict:
+    """
+    Authenticates a user and returns an access token.
+    """
+    return token(form_data)
+
+
+@app.get("/me", tags=["auth"])
+async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User | None:
+    """
+    Retrieve the currently authenticated user.
+    """
+    return get_current_user(token)
+
 # GET  /state/{project}
 @app.get("/state/{name}", response_class=FileResponse)
 async def get_state(name: str, token: Annotated[str, Depends(oauth2_scheme)]) -> FileResponse:
