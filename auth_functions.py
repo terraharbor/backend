@@ -19,7 +19,10 @@ DB_CONFIG = {
 }
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    logger.info("Connecting to the database...")
+    connection = psycopg2.connect(**DB_CONFIG)
+    logger.info("Database connection established.")
+    return connection
 
 
 def decode_token(token: str) -> User | None:
@@ -72,6 +75,7 @@ def get_user(username: str) -> User | None:
                     username, password_hash, disabled = row
                     return User(username=username, sha512_hash=password_hash, disabled=disabled)
     except Exception as e:
+        logger.error(f"Error retrieving user '{username}': {e}")
         return None
     finally:
         try:
@@ -115,7 +119,6 @@ def register_user(user: User) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
-
 
 
 def update_user_token(username: str, token: str) -> None:
