@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.4](https://github.com/terraharbor/backend/compare/v0.1.3...v0.1.4) (2025-08-27)
+
+
+### Features
+
+* implement api endpoints ([d6362ff](https://github.com/terraharbor/backend/commit/d6362ff41f8dae43a4de895c16c3657ef5f195ad))
+
+
+### Bug Fixes
+
+* fixed conflicts ([1d2c150](https://github.com/terraharbor/backend/commit/1d2c1507be5acd07568df344c5a81279f3e50a4d))
+
+
+### Miscellaneous Chores
+
+* **deps:** pin python docker tag to 9ba6d8c ([64fbe8b](https://github.com/terraharbor/backend/commit/64fbe8bf5826ec3ff0c467603c4d3bb9fa4104f5))
+* **deps:** pin python docker tag to 9ba6d8c ([64fbe8b](https://github.com/terraharbor/backend/commit/64fbe8bf5826ec3ff0c467603c4d3bb9fa4104f5))
+* **deps:** pin python docker tag to 9ba6d8c ([2dcf41f](https://github.com/terraharbor/backend/commit/2dcf41f22b57b542401c3275f88baaa085faf575))
+
 ## [0.1.3](https://github.com/terraharbor/backend/compare/v0.1.2...v0.1.3) (2025-08-26)
 
 
