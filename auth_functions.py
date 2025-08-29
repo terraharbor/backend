@@ -69,7 +69,7 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,))
+                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
                     username, password_hash, disabled = row
@@ -204,9 +204,10 @@ def is_token_valid(token: str) -> bool:
                     UPDATE auth_tokens
                     SET created_at = NOW()
                     WHERE id = %s""", (aid,))
+                logger.info(f"Checked token {token}: valid={valid}")
                 return valid
     except Exception as e:
-        print(f"Error validating token: {e}")
+        logger.error(f"Error validating token: {e}")
         return False
     finally:
         try:
