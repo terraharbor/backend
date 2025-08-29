@@ -24,8 +24,8 @@ def _state_dir(project: str, state_name: str) -> str:
 def _latest_state_path(project: str, state_name: str) -> str:
     return os.path.join(_state_dir(project, state_name), "latest.tfstate")
 
-def _versioned_state_path(project: str, state_name: str, ts: int) -> str:
-    return os.path.join(_state_dir(project, state_name), f"{ts}.tfstate")
+def _versioned_state_path(project: str, state_name: str, version: int) -> str:
+    return os.path.join(_state_dir(project, state_name), f"{version}.tfstate")
 
 
 @app.post("/register")
@@ -77,7 +77,7 @@ async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User | None:
 async def get_state(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> FileResponse:
     if not is_token_valid(token):
         raise HTTPException(status_code=401, detail="Invalid token")
-    if version:
+    if version is not None:
         path = _versioned_state_path(project, state_name, version)
     else:
         path = _latest_state_path(project, state_name)
@@ -87,19 +87,25 @@ async def get_state(project: str, state_name: str, token: Annotated[str, Depends
 
 # POST /state/{project}/{state_name}
 @app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
-async def put_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
+async def put_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
     if not is_token_valid(token):
         raise HTTPException(status_code=401, detail="Invalid token")
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
-    ts = int(time.time())
-    version_path = _versioned_state_path(project, state_name, ts)
+    # Get the version from the query parameter or the JSON body
+    if version is None:
+        try:
+            json_body = json.loads(body)
+            version = json_body.get("version")
+        except Exception:
+            pass
+    if version is None:
+        raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
+    version_path = _versioned_state_path(project, state_name, version)
     latest_path = _latest_state_path(project, state_name)
-    # Save new version
     with open(version_path, "wb") as f:
         f.write(body)
-
     with open(latest_path, "wb") as f:
         f.write(body)
     return Response(status_code=status.HTTP_200_OK)
@@ -146,16 +152,31 @@ async def unlock_state(project: str, state_name: str, request: Request, token: A
 async def delete_state(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
     if not is_token_valid(token):
         raise HTTPException(status_code=401, detail="Invalid token")
-    
     state_dir = _state_dir(project, state_name)
-    if version:
+    logger.info(f"State asked to delete: {state_dir}")
+    if version is not None:
         path = _versioned_state_path(project, state_name, version)
         if os.path.exists(path):
+            logger.info(f"Deleting state version: {path}")
             os.remove(path)
+            # If the latest version is deleted, update latest.tfstate
+            versions = [int(f.split('.tfstate')[0]) for f in os.listdir(state_dir) if f.endswith('.tfstate') and f != 'latest.tfstate']
+            if versions:
+                last_version = max(versions)
+                last_path = _versioned_state_path(project, state_name, last_version)
+                latest_path = _latest_state_path(project, state_name)
+                with open(last_path, "rb") as src, open(latest_path, "wb") as dst:
+                    dst.write(src.read())
+            else:
+                # If there are no more versions, delete latest.tfstate
+                latest_path = _latest_state_path(project, state_name)
+                if os.path.exists(latest_path):
+                    os.remove(latest_path)
         else:
             raise HTTPException(status_code=404, detail="State version not found")
     else:
         # Remove all versions and latest
         for file in os.listdir(state_dir):
+            logger.info(f"Deleting state file: {file}")
             os.remove(os.path.join(state_dir, file))
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(status_code=status.HTTP_200_OK)
