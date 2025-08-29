@@ -173,9 +173,10 @@ def is_token_valid(token: str) -> bool:
                 # Verifies that the token has not expired
                 cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
                 valid = cur.fetchone()[0]
+                logger.info(f"Checked token {token}: valid={valid}")
                 return valid
     except Exception as e:
-        print(f"Error validating token: {e}")
+        logger.error(f"Error validating token: {e}")
         return False
     finally:
         try:
