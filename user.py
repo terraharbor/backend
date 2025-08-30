@@ -7,4 +7,3 @@ class User(BaseModel):
     sha512_hash: str
     token: Optional[str] = None
     token_validity: Optional[int] = None
-    projects_tokens: dict[str, list[str]] = {}   # Structure: dict of projectName-[projectTokens]
