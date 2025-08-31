@@ -42,7 +42,9 @@ async def register(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -
     if not form_data.username or not form_data.password:
         raise HTTPException(status_code=400, detail="All fields are required")
 
-    user = User(username=form_data.username.strip(), disabled=True, sha512_hash=sha512(form_data.password.encode()).hexdigest(), usedforsecurity=True)
+    salt = os.urandom(32).hex()
+    salted_password = salt + form_data.password
+    user = User(username=form_data.username.strip(), disabled=True, sha512_hash=sha512(salted_password.encode()).hexdigest(), salt=salt)
     if user_exists(user):
         raise HTTPException(status_code=400, detail="User already exists")
     else:
@@ -55,7 +57,8 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     Authenticates a user and returns an access token.
     """
     user = get_user(form_data.username)
-    if not user or user.sha512_hash != sha512(form_data.password.encode()).hexdigest():
+    salted_password = user.salt + form_data.password
+    if not user or user.sha512_hash != sha512(salted_password.encode()).hexdigest():
         raise HTTPException(status_code=400, detail="Invalid credentials")
     access_token = token_hex(32)
     update_user_token(user.username, access_token)

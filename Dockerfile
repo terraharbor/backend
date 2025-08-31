@@ -12,7 +12,6 @@ RUN apk add --no-cache su-exec
 RUN addgroup -S app && adduser -S app -G app
 
 COPY . .
-RUN mkdir -p /app/data && chown -R app:app /app/data
 
 RUN chown -R app:app /app
 
