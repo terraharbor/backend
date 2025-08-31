@@ -21,7 +21,10 @@ DB_CONFIG = {
 }
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    logger.info("Connecting to the database...")
+    connection = psycopg2.connect(**DB_CONFIG)
+    logger.info("Database connection established.")
+    return connection
 
 
 def decode_token(token: str) -> User | None:
@@ -68,11 +71,34 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,))
+                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
                     username, password_hash, disabled = row
                     return User(username=username, sha512_hash=password_hash, disabled=disabled)
+    except Exception as e:
+        logger.error(f"Error retrieving user '{username}': {e}")
+        return None
+    finally:
+        try:
+            conn.close()
+        except:
+            logger.error("Error closing database connection")
+    return None
+
+
+def get_user_id(username: str) -> str | None:
+    """
+    Retrieve the user's ID from DB
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                row = cur.fetchone()
+                if row:
+                    return row[0]
     except Exception as e:
         return None
     finally:
@@ -82,7 +108,7 @@ def get_user(username: str) -> User | None:
             logger.error("Error closing database connection")
     return None
 
-def get_current_user(token) -> str | None:
+def get_current_user(token) -> str | User | None:
     """
     Retrieve the currently authenticated user from the request context.
     """
@@ -197,6 +223,7 @@ def is_token_valid(token: str) -> bool:
                 # Verifies that the token has not expired
                 cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl,))
                 valid = cur.fetchone()[0]
+                logger.info(f"Checked token {token}: valid={valid}")
                 # Refresh the token if valid
                 if valid:
                     cur.execute("""
@@ -205,7 +232,7 @@ def is_token_valid(token: str) -> bool:
                     WHERE id = %s""", (aid,))
                 return valid
     except Exception as e:
-        print(f"Error validating token: {e}")
+        logger.error(f"Error validating token: {e}")
         return False
     finally:
         try:

@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS project_tokens (
+    token VARCHAR(255) PRIMARY KEY,
+    projectId SERIAL NOT NULL REFERENCES projects(id),
+    userId SERIAL NOT NULL REFERENCES users(id),
+    read BIT NOT NULL,
+    write BIT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS files (
     id SERIAL PRIMARY KEY,
     project_id INTEGER NOT NULL REFERENCES projects(id),
