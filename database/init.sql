@@ -19,6 +19,19 @@ CREATE TABLE IF NOT EXISTS organisations (
     description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS organisation_tokens (
+    token VARCHAR(255) PRIMARY KEY,
+    organisationId SERIAL NOT NULL REFERENCES organisations(id),
+    userId SERIAL NOT NULL REFERENCES users(id),
+    administrator BIT NOT NULL,
+
+    can_add_proj BIT NOT NULL,
+    can_del_proj BIT NOT NULL,
+
+    can_add_token BIT NOT NULL,
+    can_del_token BIT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS projects (
     id SERIAL PRIMARY KEY,
     organisation_id INTEGER NOT NULL REFERENCES organisations(id),

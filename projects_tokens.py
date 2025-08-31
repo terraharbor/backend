@@ -18,11 +18,11 @@ class PERMISSION(enum.Enum):
 
 def parse_permission_flags(read, write) -> int:
     if read == '1' and write == '1':
-        return PERMISSION.RW
+        return PERMISSION.RW.value
     elif read == '1' and not write == '1':
-        return PERMISSION.READ
+        return PERMISSION.READ.value
     elif write == '1' and not read == '1':
-        return PERMISSION.WRITE
+        return PERMISSION.WRITE.value
     else:
         raise ValueError('Invalid permission flags')
 
@@ -37,7 +37,7 @@ def create_project_token(username: str, project_name: str, permission: Union[PER
     """
     Creates new token for project
     """
-    # TODO(#13): verify user's auth and perms to create tokens (projectOwner/admin)
+    # TODO(#16): verify user's auth and perms to create tokens (projectOwner/admin)
     # Create token
     project_token = token_hex(32)
 
@@ -73,7 +73,7 @@ def revoke_project_token(project_name: str, project_token: str) -> None:
     """
     Removes the project-token pair from a user.
     """
-    # TODO(#13): Verify user's auth and perms to remove tokens (projectOwner/admin)
+    # TODO(#16): Verify user's auth and perms to remove tokens (projectOwner/admin)
     project_id = get_project_id_from_name(project_name)
     try:
         conn = get_db_connection()
@@ -117,6 +117,30 @@ def get_token_in_projects(project_token: str) -> ProjectToken:
         except:
             logger.error("Error closing DB connection")
 
+
+def get_accessible_projects_for_user_id(user_id: str) -> list[ProjectToken]:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                SELECT projectId, read, write FROM project_tokens
+                WHERE userId = %s""", (user_id,))
+                rows = cur.fetchall()
+                if rows:
+                    out = []
+                    for row in rows:
+                        pid, read, write = row
+                        out.append(ProjectToken(token="", projectName=get_project_name_from_id(pid),
+                                                permission=parse_permission_flags(read, write)))
+                    return out
+    except Exception as e:
+        raise RuntimeError(f"Failed to retrieve projects for user id {user_id}: {e}")
+    finally:
+        try:
+            conn.close()
+        except:
+            logger.error("Error closing DB connection")
 
 
 def has_read_access(project_name: str, project_token: str) -> bool:

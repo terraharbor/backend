@@ -1,14 +1,17 @@
 from typing import Annotated
+
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 
 from hashlib import sha512
 from auth_functions import *
-import os, time, json
+import os, json
 from secrets import token_hex
 
-from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access
+from organisation_accesses import fetch_org_tokens_for_username
+from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
+    get_accessible_projects_for_user_id
 
 DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
 
@@ -241,3 +244,37 @@ async def has_read_rights(project_name: str, project_token: str) -> Response:
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     else:
         return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/organisations/list")
+async def list_accesses(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+    username = get_current_user(token).username
+
+    perms = fetch_org_tokens_for_username(username)
+
+    res = {}
+    for perm in perms:
+        perm_dict = {perm.organisation : {
+            "Admin": perm.admin,
+            "CanAddProject": perm.can_add_proj,
+            "CanRemoveProject": perm.can_del_proj,
+            "CanCreateProjectToken": perm.can_add_token,
+            "CanRemoveProjectToken": perm.can_del_token
+        }}
+        res.update(perm_dict)
+
+    return res
+
+
+@app.get("/state/list")
+async def list_project_accesses() -> list[dict]:
+    user_id = get_user_id(get_current_user("463bf3b6cd6e0fb6ae07a9ac34c7c593fd2e06a35777067ada6f99288e152026").username)
+
+    perms = get_accessible_projects_for_user_id(user_id)
+
+    res: list[dict[str, str]] = []
+
+    for perm in perms:
+        res.append({perm.projectName: "READ" if perm.permission == 1 else "WRITE" if perm.permission == 2 else "READ-WRITE"})
+
+    return res
