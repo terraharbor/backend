@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.1.5](https://github.com/terraharbor/backend/compare/v0.1.4...v0.1.5) (2025-08-31)
+
+
+### Features
+
+* Enhanced logging ([2690a59](https://github.com/terraharbor/backend/commit/2690a599a37181a780b3aceabe447a5f05ee85fb))
+* Implemented state versioning & deletion ([e3794ed](https://github.com/terraharbor/backend/commit/e3794edff3f80fb50e883e2d0218b10e5164e32b))
+* states versioning & deletion ([118bcf6](https://github.com/terraharbor/backend/commit/118bcf6876b04ce1ff803e977de4b57201c7adba))
+
+
+### Bug Fixes
+
+* Fixed work space ([0c470e5](https://github.com/terraharbor/backend/commit/0c470e5bfa433a0716030452bce61e79262f60e1))
+
+
+### Documentation
+
+* updated endpoint docs ([9e5d5b7](https://github.com/terraharbor/backend/commit/9e5d5b74a2701ae3fd32ece2f9fe56eedcd298ba))
+
+
+### Miscellaneous Chores
+
+* Merge branch 'main' into refactor/salt_passwords ([ae52fac](https://github.com/terraharbor/backend/commit/ae52fac4dc3b25454d3de805d125eeab7d8c2a21))
+
+
+### Code Refactoring
+
+* Implemented password salting ([c9de3a4](https://github.com/terraharbor/backend/commit/c9de3a484a6c43f1cac81cb80eea728de59f52f9))
+* password security upgrade ([f1cae81](https://github.com/terraharbor/backend/commit/f1cae818589956c9def704ca5ef726a486a6905a))
+
+
+### Build System
+
+* Removed intruction repeated twice uselessly ([656ebb0](https://github.com/terraharbor/backend/commit/656ebb01f9197271fdd52604be8530da5f4cde10))
+
 ## [0.1.4](https://github.com/terraharbor/backend/compare/v0.1.3...v0.1.4) (2025-08-27)
 
 
