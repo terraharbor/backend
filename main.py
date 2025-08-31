@@ -24,7 +24,7 @@ def _project_dir(name: str) -> str:
 def _latest_state(name: str) -> str:
     return os.path.join(_project_dir(name), "latest.tfstate")
 
-@app.post("/register")
+@app.post("/register", tags=["auth"])
 async def register(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Response:
     """
     Register a new user.
@@ -41,22 +41,32 @@ async def register(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -
         register_user(user)
         return {"message": "User registered successfully", "user": user}
 
-@app.post("/token")
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> dict:
+@app.post("/token", tags=["auth"])
+async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> dict:
     """
-    Login endpoint to authenticate user and return a token.
-    This is a placeholder; actual implementation should use JWT or similar
+    Authenticates a user and returns an access token.
     """
     user = get_user(form_data.username)
-
     if not user or user.sha512_hash != sha512(form_data.password.encode()).hexdigest():
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
     access_token = token_hex(32)
-
     update_user_token(user.username, access_token)
-
     return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/login", tags=["auth"])
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> dict:
+    """
+    Authenticates a user and returns an access token.
+    """
+    return token(form_data)
+
+
+@app.get("/me", tags=["auth"])
+async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User | None:
+    """
+    Retrieve the currently authenticated user.
+    """
+    return get_current_user(token)
 
 # GET  /state/{project}
 @app.get("/state/{name}", response_class=FileResponse)
