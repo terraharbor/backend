@@ -68,7 +68,7 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username))
+                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,))
                 row = cur.fetchone()
                 if row:
                     username, password_hash, disabled = row
@@ -155,17 +155,20 @@ def disable_user(username: str, token: str) -> None:
     Disable a given user in the system. Needs its last token for safety (preventing user delog solely through name)
     """
     try:
-        with open(USERS_FILE, "r") as f:
-            users_dict = json.load(f)
-
-        # Doubly check
-        if users_dict[username]["token"] != token:
-            raise ValueError("Provided token does not match user token in store")
-
-        users_dict[username]["disabled"] = True
-
-        with open(USERS_FILE, "w") as s:
-            json.dump(users_dict, s, indent=4)
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                WITH r AS (
+                    SELECT t.user_id
+                    FROM auth_tokens t
+                    JOIN users u ON u.id = t.user_id
+                    WHERE t.token = %s
+                    AND u.username = %s)
+                UPDATE users
+                SET disabled = TRUE
+                FROM r
+                WHERE users.id = r.user_id""", (token, username,))
 
     except Exception as e:
         raise RuntimeError(f"Failed to disable user: {e}")
@@ -180,7 +183,7 @@ def is_token_valid(token: str) -> bool:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT t.created_at, t.ttl, u.disabled
+                    SELECT t.id, t.created_at, t.ttl, u.disabled
                     FROM auth_tokens t
                     JOIN users u ON u.id = t.user_id
                     WHERE t.token = %s
@@ -188,12 +191,18 @@ def is_token_valid(token: str) -> bool:
                 row = cur.fetchone()
                 if not row:
                     return False
-                created_at, ttl, disabled = row
+                aid, created_at, ttl, disabled = row
                 if disabled:
                     return False
                 # Verifies that the token has not expired
-                cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
+                cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl,))
                 valid = cur.fetchone()[0]
+                # Refresh the token if valid
+                if valid:
+                    cur.execute("""
+                    UPDATE auth_tokens
+                    SET created_at = NOW()
+                    WHERE id = %s""", (aid,))
                 return valid
     except Exception as e:
         print(f"Error validating token: {e}")
@@ -203,25 +212,3 @@ def is_token_valid(token: str) -> bool:
             conn.close()
         except:
             pass
-
-def is_token_valid(token: str) -> bool:
-    """
-    Check if the provided token is valid.
-    This function should check the token's validity against the user store.
-    """
-    user: Optional[User] = decode_token(token)
-    # No response from decode (non-existing user) or user disabled
-    if not user or user.disabled:
-        return False
-    else:
-        # Check if user token is still valid
-        current_time = int(time.time())
-        if current_time > user.token_validity:
-            # User has been inactive/unlogged for too long, disable it
-            disable_user(user.username, token)
-            return False
-        else:
-            # Refresh the token
-            # Proposal, refresh the token as long as User shows proof of activity
-            update_user_token(user.name, token)
-            return True
