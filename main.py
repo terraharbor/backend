@@ -2,12 +2,13 @@ from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
-from user import User
+
 from hashlib import sha512
 from auth_functions import *
 import os, time, json
 from secrets import token_hex
 
+from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access
 
 DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
 
@@ -58,7 +59,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     """
     Authenticates a user and returns an access token.
     """
-    return token(form_data)
+    return await token(form_data)
 
 
 @app.get("/me", tags=["auth"])
@@ -164,3 +165,50 @@ async def delete_state(name: str, token: Annotated[str, Depends(oauth2_scheme)])
         os.remove(os.path.join(proj_dir, file))
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Project token endpoints
+@app.post("/state/{project_name}/token")
+async def create_proj_token(token: str, project_name: str, permissions: int) -> dict:
+    if not is_token_valid(token):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    username = get_current_user(token).username
+
+    try:
+        project_token = create_project_token(username, project_name, permissions)
+    except Exception as e:
+        logger.error(f"Failed to create project token: {e}")
+        raise HTTPException(status_code=403, detail="Failed to create project token")
+
+    return {"project_token": project_token}
+
+
+@app.delete("/state/{project_name}/{project_token}", response_class=Response)
+async def delete_proj_token(token: str, project_name: str, project_token: str) -> Response:
+    if not is_token_valid(token):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    try:
+        revoke_project_token(project_name, project_token)
+    except Exception as e:
+        logger.error(f"Failed to revoke project token: {e}")
+        raise HTTPException(status_code=403, detail="Failed to revoke project token")
+
+    return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/state/{project_name}/{project_token}/canRead", response_class=Response)
+async def has_read_rights(project_name: str, project_token: str) -> Response:
+    if not has_read_access(project_name, project_token):
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/state/{project_name}/{project_token}/canWrite", response_class=Response)
+async def has_read_rights(project_name: str, project_token: str) -> Response:
+    if not has_write_access(project_name, project_token):
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        return Response(status_code=status.HTTP_200_OK)

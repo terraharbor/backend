@@ -66,7 +66,7 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username))
+                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,))
                 row = cur.fetchone()
                 if row:
                     username, password_hash, disabled = row
@@ -80,7 +80,29 @@ def get_user(username: str) -> User | None:
             logger.error("Error closing database connection")
     return None
 
-def get_current_user(token) -> str | None:
+
+def get_user_id(username: str) -> str | None:
+    """
+    Retrieve the user's ID from DB
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                row = cur.fetchone()
+                if row:
+                    return row[0]
+    except Exception as e:
+        return None
+    finally:
+        try:
+            conn.close()
+        except:
+            logger.error("Error closing database connection")
+    return None
+
+def get_current_user(token) -> str | User | None:
     """
     Retrieve the currently authenticated user from the request context.
     """
@@ -115,6 +137,7 @@ def register_user(user: User) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
+
 
 
 def update_user_token(username: str, token: str) -> None:
