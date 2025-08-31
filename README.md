@@ -16,16 +16,106 @@ This page displays forms allowing to test the different endpoints.
 
 There are currently several basic endpoints:
 
-> doc format: `METHOD`:`ENDPOINT` 
+> doc format: `METHOD`:`ENDPOINT`
+
+### Not Authenticated endpoimts
 
 * `POST`:`/register`: registers a user thanks to a username and a password. Returns the creds for debug reasons for the moment.
-* `POST`:`/login`: Send a username and a password to this endpoints, and this user's token will be returned. A new one can be created here. Validity for one hour (user token for the frontend).
+
+#### Request example
+```zsh
+curl -X 'POST' \
+  'http://localhost:8000/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'username=user&password=password'
+```
+**Returns:**
+
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "username": "user",
+    "disabled": true,
+    "sha512_hash": "35b104625d3fa93a9bb2ea089a300434c902ae51a33b838242a3aa0eb6ea3a6e86c973c1a09088b7489ec39adf21ce3baf9f1aaaf05a265f01882fba4d904f06",
+    "salt": "28ba555d23d8e8ab3b16f8bc9efd1cb9f413e61a450560028b0e9c3297ff39d3",
+    "token": null,
+    "token_validity": null
+  }
+}
+```
+the password hash is for test purposes. It's temporary.
+
 * `POST`:`/token`: Send a username and a password to this endpoints, and this user's token will be returned. A new one can be created here. Validity for one hour (user token for the frontend).
-* `LOCK`:`/state/{state}`: Locks a state file.
-* `UNLOCK`:`/state/{state}`: Unlocks a state file.
-* `GET`:`/state/{state}`: Returns a state file. TODO: Won't work if the state file was locked by anyone else.
-* `POST`:`/state/{state}`: Uploads a state.
-* `DELETE`:`/state/{state}`: Deletes a state.
+* `POST`:`/login`: Same as /token. It's an alias. No more utility.
+
+#### Request example
+
+```zsh
+curl -X 'POST' \
+  'http://localhost:8000/token' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'username=user&password=password'
+```
+
+**Returns:**
+
+```json
+{
+  "access_token": "416bc3a7fb0ed25cbb2c526c15a5f1cc8ef39c154dc52acd47dcd4b68b5ce4cf",
+  "token_type": "bearer"
+}
+```
+
+### Authenticated Endpoints
+
+* `LOCK`:`/state/{project}/{state}`: Locks a state file.
+* `UNLOCK`:`/state/{project}/{state}`: Unlocks a state file.
+
+#### Request example (with LOCK)
+
+```zsh
+curl -X LOCK http://localhost:8000/state/foo_project/state.tfstate \
+  -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
+
+* `GET`:`/state/{project}/{state}`: Returns a state file. TODO: Won't work if the state file was locked by anyone else.
+
+#### Request Example
+
+```zsh
+curl -X GET http://localhost:8000/state/foo_project/state.tfstate?version=1 \
+  -H "Authorization: Bearer 3f5a358bf3da167a82e621f23a124751a902dd15541efb4aa551abeec96ee21f"
+```
+
+You don't need the "?version=1". It is used only to choose what version of the state we want to get.
+
+* `POST`:`/state/{project}/{state}`: Uploads a state.
+
+#### Request Example
+```zsh
+curl -X POST http://localhost:8000/state/foo_project/state.tfstate \
+  -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a" \
+  --data-binary @state_v1.tfstate
+```
+
+* `DELETE`:`/state/{project}/{state}`: Deletes a state.
+
+#### Request Example
+
+```zsh
+curl -X DELETE http://localhost:8000/state/foo_project/state.tfstate\?version=1 \
+  -H "Authorization: Bearer 3f5a358bf3da167a82e621f23a124751a902dd15541efb4aa551abeec96ee21f"
+```
+
 * `GET`:`/me`: Returns current user session (must be authenticated).
+
+#### Request Example
+```zsh
+curl -X GET http://localhost:8000/me \
+  -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
 
 Please note that for the moment, no organization nor project notions have been implemented.
