@@ -25,8 +25,15 @@ CREATE TABLE IF NOT EXISTS projects (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    tokens JSONB[]
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS project_tokens (
+    token VARCHAR(255) PRIMARY KEY,
+    projectId SERIAL NOT NULL REFERENCES projects(id),
+    userId SERIAL NOT NULL REFERENCES users(id),
+    read BIT NOT NULL,
+    write BIT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS files (
