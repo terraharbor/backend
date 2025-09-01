@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.6](https://github.com/terraharbor/backend/compare/v0.1.5...v0.1.6) (2025-09-01)
+
+
+### Features
+
+* create separate role and evolutive scripts ([c98508c](https://github.com/terraharbor/backend/commit/c98508cba1776891b51b2a09b96203d219789b8c))
+
+
+### Bug Fixes
+
+* added lacking column ([dc6ffcd](https://github.com/terraharbor/backend/commit/dc6ffcd818d3b02079bbc575bdd9a9da0dab2bb4))
+* remove old init script ([a540eea](https://github.com/terraharbor/backend/commit/a540eeaead742ca56f8536c4da9707b37c41d1fb))
+
+
+### Miscellaneous Chores
+
+* merge pull request [#40](https://github.com/terraharbor/backend/issues/40) from terraharbor/feat/database-creation ([af4eaea](https://github.com/terraharbor/backend/commit/af4eaea2adf64477ed5a8b33a4ca5a12d7e4e2ae))
+
 ## [0.1.5](https://github.com/terraharbor/backend/compare/v0.1.4...v0.1.5) (2025-08-31)
 
 
