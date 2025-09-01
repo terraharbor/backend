@@ -13,8 +13,6 @@ RUN addgroup -S app && adduser -S app -G app
 
 COPY . .
 
-RUN mkdir -p /data && chown -R app:app /data
-
 RUN chown -R app:app /app
 
 EXPOSE 8000

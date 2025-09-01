@@ -1,8 +1,6 @@
 
 from functools import wraps
 
-from typing import Optional
-
 from user import User
 import psycopg2
 import os
@@ -21,7 +19,10 @@ DB_CONFIG = {
 }
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    logger.info("Connecting to the database...")
+    connection = psycopg2.connect(**DB_CONFIG)
+    logger.info("Database connection established.")
+    return connection
 
 
 def decode_token(token: str) -> User | None:
@@ -33,14 +34,14 @@ def decode_token(token: str) -> User | None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT u.username, u.password_hash, u.disabled, t.token, t.created_at, t.ttl
+                    SELECT u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl
                     FROM users u
                     JOIN auth_tokens t ON u.id = t.user_id
                     WHERE t.token = %s
                 """, (token,))
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, disabled, token, created_at, ttl = row
+                    username, password_hash, salt, disabled, token, created_at, ttl = row
                     # Calculate token expiration timestamp as an integer (Unix timestamp)
                     expiration_time = int(time.mktime((created_at + ttl).timetuple()))
                     return User(
@@ -48,7 +49,8 @@ def decode_token(token: str) -> User | None:
                         sha512_hash=password_hash,
                         disabled=disabled,
                         token=token,
-                        token_validity=expiration_time
+                        token_validity=expiration_time,
+                        salt=salt
                     )
     except Exception as e:
         print(f"Error decoding token: {e}")
@@ -68,12 +70,13 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, disabled FROM users WHERE username = %s", (username,))
+                cur.execute("SELECT username, password_hash, salt, disabled FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, disabled = row
-                    return User(username=username, sha512_hash=password_hash, disabled=disabled)
+                    username, password_hash, salt, disabled = row
+                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt)
     except Exception as e:
+        logger.error(f"Error retrieving user '{username}': {e}")
         return None
     finally:
         try:
@@ -107,8 +110,8 @@ def register_user(user: User) -> None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
-                    (user.username, user.sha512_hash)
+                    "INSERT INTO users (username, password_hash, salt) VALUES (%s, %s, %s)",
+                    (user.username, user.sha512_hash, user.salt)
                 )
     except Exception as e:
         raise RuntimeError(f"Failed to register user: {e}")
@@ -117,7 +120,6 @@ def register_user(user: User) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
-
 
 
 def update_user_token(username: str, token: str) -> None:
@@ -203,9 +205,10 @@ def is_token_valid(token: str) -> bool:
                     UPDATE auth_tokens
                     SET created_at = NOW()
                     WHERE id = %s""", (aid,))
+                logger.info(f"Checked token {token}: valid={valid}")
                 return valid
     except Exception as e:
-        print(f"Error validating token: {e}")
+        logger.error(f"Error validating token: {e}")
         return False
     finally:
         try:
