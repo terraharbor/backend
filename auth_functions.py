@@ -172,6 +172,10 @@ def disable_user(username: str, token: str) -> None:
                 FROM r
                 WHERE users.id = r.user_id""", (token, username,))
 
+                cur.execute("""
+                DELETE FROM auth_tokens
+                WHERE token = %s""", (token,))
+
     except Exception as e:
         raise RuntimeError(f"Failed to disable user: {e}")
 
