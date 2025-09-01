@@ -68,13 +68,13 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     return await token(form_data)
 
 
-@app.post("/logout/{name}", tags=["auth"])
-async def logout(name: str, token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
+@app.post("/logout/", tags=["auth"])
+async def logout(token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
     """
     Disconnects current user
     """
     try:
-        disable_user(name, token)
+        disable_user(get_current_user(token).username, token)
     except Exception as e:
         logger.error(f"Error on logout: {e}")
         return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
