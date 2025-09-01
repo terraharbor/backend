@@ -11,9 +11,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DB_CONFIG = {
-    "dbname": os.getenv("POSTGRES_DB"),
-    "user": os.getenv("POSTGRES_USER"),
-    "password": os.getenv("POSTGRES_PASSWORD"),
+    "dbname": os.getenv("PG_DATABASE_NAME"),
+    "user": os.getenv("PG_DATABASE_USER"),
+    "password": os.getenv("PG_DATABASE_PASSWORD"),
     "host": os.getenv("POSTGRES_HOST"),
     "port": int(os.getenv("POSTGRES_PORT", "5432")),
 }
@@ -151,6 +151,35 @@ def update_user_token(username: str, token: str) -> None:
             logger.error("Error closing database connection")
 
 
+
+def disable_user(username: str, token: str) -> None:
+    """
+    Disable a given user in the system. Needs its last token for safety (preventing user delog solely through name)
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                WITH r AS (
+                    SELECT t.user_id
+                    FROM auth_tokens t
+                    JOIN users u ON u.id = t.user_id
+                    WHERE t.token = %s
+                    AND u.username = %s)
+                UPDATE users
+                SET disabled = TRUE
+                FROM r
+                WHERE users.id = r.user_id""", (token, username,))
+
+                cur.execute("""
+                DELETE FROM auth_tokens
+                WHERE token = %s""", (token,))
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to disable user: {e}")
+
+
 def is_token_valid(token: str) -> bool:
     """
     Check if the provided token is valid (exists and not expired).
@@ -160,7 +189,7 @@ def is_token_valid(token: str) -> bool:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT t.created_at, t.ttl, u.disabled
+                    SELECT t.id, t.created_at, t.ttl, u.disabled
                     FROM auth_tokens t
                     JOIN users u ON u.id = t.user_id
                     WHERE t.token = %s
@@ -168,12 +197,18 @@ def is_token_valid(token: str) -> bool:
                 row = cur.fetchone()
                 if not row:
                     return False
-                created_at, ttl, disabled = row
+                aid, created_at, ttl, disabled = row
                 if disabled:
                     return False
                 # Verifies that the token has not expired
-                cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
+                cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl,))
                 valid = cur.fetchone()[0]
+                # Refresh the token if valid
+                if valid:
+                    cur.execute("""
+                    UPDATE auth_tokens
+                    SET created_at = NOW()
+                    WHERE id = %s""", (aid,))
                 logger.info(f"Checked token {token}: valid={valid}")
                 return valid
     except Exception as e:

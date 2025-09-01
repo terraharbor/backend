@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
-from user import User
+
 from hashlib import sha512
 from auth_functions import *
 import os, json
@@ -65,7 +65,20 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     """
     Authenticates a user and returns an access token.
     """
-    return token(form_data)
+    return await token(form_data)
+
+
+@app.post("/logout/{name}", tags=["auth"])
+async def logout(name: str, token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
+    """
+    Disconnects current user
+    """
+    try:
+        disable_user(name, token)
+    except Exception as e:
+        logger.error(f"Error on logout: {e}")
+        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(status_code=status.HTTP_200_OK)
 
 
 @app.get("/me", tags=["auth"])
