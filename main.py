@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from user import User
 from hashlib import sha512
@@ -8,6 +8,7 @@ from auth_functions import *
 import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
 
@@ -24,7 +25,8 @@ app.add_middleware(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+basic_auth = HTTPBasic()
+logger = logging.getLogger(__name__)
 
 def _state_dir(project: str, state_name: str) -> str:
     path = os.path.join(DATA_DIR, project, state_name)
@@ -56,7 +58,7 @@ async def register(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -
 
     salt = os.urandom(32).hex()
     salted_password = salt + form_data.password
-    user = User(username=form_data.username.strip(), disabled=True, sha512_hash=sha512(salted_password.encode()).hexdigest(), salt=salt)
+    user = User(username=form_data.username.strip(), disabled=False, sha512_hash=sha512(salted_password.encode()).hexdigest(), salt=salt)
     if user_exists(user):
         raise HTTPException(status_code=400, detail="User already exists")
     else:
@@ -91,17 +93,27 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
 
 
 @app.get("/me", tags=["auth"])
-async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User | None:
-    """
-    Retrieve the currently authenticated user.
-    """
-    return get_current_user(token)
+async def me(
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None
+) -> User | None:
+    logger.info(f"[ROUTE /me] token={token} credentials={credentials}")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[ROUTE /me] token={token} credentials={credentials}")
+    user = get_authenticated_user(token, credentials)
+    return user
 
 # GET  /state/{project}/{state_name}
 @app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])
-async def get_state(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> FileResponse:
-    if not is_token_valid(token):
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def get_state(
+    project: str,
+    state_name: str,
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None,
+    version: int = None
+) -> FileResponse:
+    user = get_authenticated_user(token, credentials)
     if version is not None:
         path = _versioned_state_path(project, state_name, version)
     else:
@@ -112,9 +124,15 @@ async def get_state(project: str, state_name: str, token: Annotated[str, Depends
 
 # POST /state/{project}/{state_name}
 @app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
-async def put_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
-    if not is_token_valid(token):
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def put_state(
+    project: str,
+    state_name: str,
+    request: Request,
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None,
+    version: int = None
+) -> Response:
+    user = get_authenticated_user(token, credentials)
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
@@ -138,9 +156,14 @@ async def put_state(project: str, state_name: str, request: Request, token: Anno
 
 # LOCK  /state/{project}
 @app.api_route("/state/{project}/{state_name}", methods=["LOCK"], response_class=Response, tags=["auth"])
-async def lock_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
-    if not is_token_valid(token):
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def lock_state(
+    project: str,
+    state_name: str,
+    request: Request,
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None
+) -> Response:
+    user = get_authenticated_user(token, credentials)
     lock_path = os.path.join(_state_dir(project, state_name), ".lock")
     body = (await request.body()).decode() or "{}"
     if os.path.exists(lock_path):
@@ -152,9 +175,14 @@ async def lock_state(project: str, state_name: str, request: Request, token: Ann
 
 # UNLOCK /state/{project}
 @app.api_route("/state/{project}/{state_name}", methods=["UNLOCK"], response_class=Response, tags=["auth"])
-async def unlock_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
-    if not is_token_valid(token):
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def unlock_state(
+    project: str,
+    state_name: str,
+    request: Request,
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None
+) -> Response:
+    user = get_authenticated_user(token, credentials)
     lock_path = os.path.join(_state_dir(project, state_name), ".lock")
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
@@ -174,9 +202,14 @@ async def unlock_state(project: str, state_name: str, request: Request, token: A
 
 # DELETE /state/{project}
 @app.delete("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
-async def delete_state(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
-    if not is_token_valid(token):
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def delete_state(
+    project: str,
+    state_name: str,
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None,
+    version: int = None
+) -> Response:
+    user = get_authenticated_user(token, credentials)
     state_dir = _state_dir(project, state_name)
     logger.info(f"State asked to delete: {state_dir}")
     if version is not None:

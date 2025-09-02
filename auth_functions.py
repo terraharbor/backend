@@ -1,5 +1,9 @@
 
 from functools import wraps
+from hashlib import sha512
+
+from fastapi import HTTPException
+from fastapi.security import HTTPBasicCredentials
 
 from user import User
 import psycopg2
@@ -85,14 +89,47 @@ def get_user(username: str) -> User | None:
             logger.error("Error closing database connection")
     return None
 
-def get_current_user(token) -> str | None:
+def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials = None) -> User | None:
+    logger.info(f"token: {token}")
+    logger.info(f"credentials: {credentials}")
+    if token:
+        user = decode_token(token)
+        if user and not user.disabled:
+            return user
+        raise HTTPException(status_code=401, detail="Invalid or disabled token")
+    elif credentials:
+        user = get_user(credentials.username)
+        if user and not user.disabled:
+            salted_password = user.salt + credentials.password
+            calculated_hash = sha512(salted_password.encode()).hexdigest()
+            logger.info(f"[AUTH] username={credentials.username} salt={user.salt} password={credentials.password}")
+            logger.info(f"[AUTH] expected_hash={user.sha512_hash} calculated_hash={calculated_hash}")
+            if user.sha512_hash == calculated_hash:
+                return user
+        logger.warning(f"[AUTH] Basic Auth failed for user {credentials.username}")
+        raise HTTPException(status_code=401, detail="Invalid Basic Auth credentials")
+    raise HTTPException(status_code=401, detail="No authentication provided")
+
+def get_current_user(token = None, credentials = None) -> User | str:
     """
     Retrieve the currently authenticated user from the request context.
     """
-    if not is_token_valid(token):
-        return "Token not valid"
-    user: User = decode_token(token)
-    return user
+
+    if token:
+        if not is_bearer_token_valid(token):
+            return "Token not valid"
+        user: User = decode_token(token)
+        return user
+
+    if credentials:
+        user = get_user(credentials.username)
+        if not user:
+            return "User not found"
+        if user.sha512_hash != sha512(credentials.password.encode()).hexdigest():
+            return "Invalid credentials"
+        return user
+
+    return "No authentication information provided"
 
 def user_exists(user: User) -> bool:
     """
@@ -110,8 +147,8 @@ def register_user(user: User) -> None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO users (username, password_hash, salt) VALUES (%s, %s, %s)",
-                    (user.username, user.sha512_hash, user.salt)
+                    "INSERT INTO users (username, password_hash, salt, disabled) VALUES (%s, %s, %s, %s)",
+                    (user.username, user.sha512_hash, user.salt, False)
                 )
     except Exception as e:
         raise RuntimeError(f"Failed to register user: {e}")
@@ -151,7 +188,7 @@ def update_user_token(username: str, token: str) -> None:
             logger.error("Error closing database connection")
 
 
-def is_token_valid(token: str) -> bool:
+def is_bearer_token_valid(token: str) -> bool:
     """
     Check if the provided token is valid (exists and not expired).
     """
