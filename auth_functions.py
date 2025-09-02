@@ -6,7 +6,6 @@ import psycopg2
 import os
 import time
 import logging
-import base64
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -175,6 +174,10 @@ def update_user_token(username: str, token: str) -> None:
                 cur.execute(
                     "INSERT INTO auth_tokens (user_id, token, created_at, ttl) VALUES (%s, %s, NOW(), %s::INTERVAL)",
                     (user_id, token, f'{token_validity} seconds')
+                )
+                # Update disabled flag
+                cur.execute(
+                    "UPDATE users SET disabled=FALSE WHERE id = %s", (user_id,)
                 )
     except Exception as e:
         raise RuntimeError(f"Failed to update user token: {e}")
