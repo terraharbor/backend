@@ -7,11 +7,21 @@ from hashlib import sha512
 from auth_functions import *
 import os, json
 from secrets import token_hex
-
+from fastapi.middleware.cors import CORSMiddleware
 
 DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
 
 app = FastAPI(title="TerraHarbor")
+
+# Add CORS middleware to fix communication between frontend and backend: 
+# browser was refusing backend response
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -65,7 +75,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     """
     Authenticates a user and returns an access token.
     """
-    return token(form_data)
+    return await token(form_data)
 
 
 @app.get("/me", tags=["auth"])
