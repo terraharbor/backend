@@ -85,7 +85,7 @@ def get_user(username: str) -> User | None:
             logger.error("Error closing database connection")
     return None
 
-def get_current_user(token) -> str | None:
+def get_current_user(token) -> str | User | None:
     """
     Retrieve the currently authenticated user from the request context.
     """
@@ -141,6 +141,10 @@ def update_user_token(username: str, token: str) -> None:
                 cur.execute(
                     "INSERT INTO auth_tokens (user_id, token, created_at, ttl) VALUES (%s, %s, NOW(), %s::INTERVAL)",
                     (user_id, token, f'{token_validity} seconds')
+                )
+                # Update disabled flag
+                cur.execute(
+                    "UPDATE users SET disabled=FALSE WHERE id = %s", (user_id,)
                 )
     except Exception as e:
         raise RuntimeError(f"Failed to update user token: {e}")
