@@ -63,9 +63,15 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     Authenticates a user and returns an access token.
     """
     user = get_user(form_data.username)
-    salted_password = user.salt + form_data.password
-    if not user or user.sha512_hash != sha512(salted_password.encode()).hexdigest():
+
+    if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
+    
+    salted_password = user.salt + form_data.password
+
+    if user.sha512_hash != sha512(salted_password.encode()).hexdigest():
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+    
     access_token = token_hex(32)
     update_user_token(user.username, access_token)
     return {"access_token": access_token, "token_type": "bearer"}
