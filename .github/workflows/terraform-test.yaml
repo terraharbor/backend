@@ -1,0 +1,28 @@
+---
+name: "terraform-test"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create random passwords for PostgreSQL
+        working-directory: tests/docker-compose
+        run: |
+          echo "Create database passwords"
+          echo "PG_ROOT_PASSWORD=$(openssl rand -base64 32)" > .env.local
+          echo "TERRAHARBOR_DB_PASSWORD=$(openssl rand -base64 32)" >> .env.local
+
+      - name: Start containers
+        working-directory: tests/docker-compose
+        run: |
+          docker compose --env-file .env --env-file .env.local up -d
