@@ -6,23 +6,52 @@ on:
   pull_request:
   push:
     branches:
-      - main
+    - main
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+    - name: Checkout code
+      uses: actions/checkout@v5
 
-      - name: Create random passwords for PostgreSQL
-        working-directory: tests/docker-compose
-        run: |
-          echo "Create database passwords"
-          echo "PG_ROOT_PASSWORD=$(openssl rand -base64 32)" > .env.local
-          echo "TERRAHARBOR_DB_PASSWORD=$(openssl rand -base64 32)" >> .env.local
+    - name: Create random passwords for PostgreSQL
+      working-directory: tests/docker-compose
+      run: |
+        echo "Create database passwords"
+        echo "PG_ROOT_PASSWORD=$(openssl rand -base64 32)" > .env.local
+        echo "TERRAHARBOR_DB_PASSWORD=$(openssl rand -base64 32)" >> .env.local
 
-      - name: Start containers
-        working-directory: tests/docker-compose
-        run: |
-          docker compose --env-file .env --env-file .env.local up -d
+    - name: Start containers
+      working-directory: tests/docker-compose
+      run: |
+        docker compose --env-file .env --env-file .env.local up -d
+
+    - name: Wait for the backend to be healthy
+      working-directory: tests/docker-compose
+      run: |
+        echo "Waiting for the backend to be healthy..."
+        until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health | grep -q "200"; do
+          sleep 1
+        done
+        echo "Backend is up!"
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+
+    # TODO Initialize the HTTP backend when the backend is ready to be tested.
+    - name: Initialize Terraform
+      working-directory: tests/terraform
+      run: terraform init
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    # Will fail the build if not
+    - name: Check Terraform Formatting
+      working-directory: tests/terraform
+      run: terraform fmt -check
+
+    - name: Run Terraform Apply
+      working-directory: tests/terraform
+      run: terraform apply -auto-approve
