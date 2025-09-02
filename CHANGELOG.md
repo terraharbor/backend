@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.7](https://github.com/terraharbor/backend/compare/v0.1.6...v0.1.7) (2025-09-02)
+
+
+### Features
+
+* health check endpoint added ([616766d](https://github.com/terraharbor/backend/commit/616766d5c4637105d85b9b63fe9bcc3745f8b8ab))
+* health check endpoint added ([c97cef0](https://github.com/terraharbor/backend/commit/c97cef0eb93acad787da6649f23b5c99b6b1a2bc))
+
+
+### Bug Fixes
+
+* fix frontend compatibility ([ea146a5](https://github.com/terraharbor/backend/commit/ea146a56a3fa32d57b3802354a20dba4f95d2458))
+* fix frontend compatibility ([3780e74](https://github.com/terraharbor/backend/commit/3780e74361dd7b02d7b647e776e4cfa511c06a33))
+* fixed /token when user does not exist ([df3984a](https://github.com/terraharbor/backend/commit/df3984a621658d3f43ca66e19f29aaacf4ec400b))
+* fixed /token when user does not exist ([8397af4](https://github.com/terraharbor/backend/commit/8397af4b150e972d5d3e4474f988370449f2dfa2))
+* merge pull request [#44](https://github.com/terraharbor/backend/issues/44) from terraharbor/fix/token_endpoint ([df3984a](https://github.com/terraharbor/backend/commit/df3984a621658d3f43ca66e19f29aaacf4ec400b))
+
+
+### Miscellaneous Chores
+
+* Merge from terraharbor/feat/health_check ([616766d](https://github.com/terraharbor/backend/commit/616766d5c4637105d85b9b63fe9bcc3745f8b8ab))
+* Merge main into fix/token_endpoint ([1222165](https://github.com/terraharbor/backend/commit/12221653b9ac35272f2999ed491bcbc12a00491d))
+
 ## [0.1.6](https://github.com/terraharbor/backend/compare/v0.1.5...v0.1.6) (2025-09-01)
 
 
