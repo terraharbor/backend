@@ -97,12 +97,12 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
 
 
 @app.post("/logout", tags=["auth"])
-async def logout(token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
+async def logout(user: Annotated[User, Depends(get_auth_user)]) -> Response:
     """
     Disconnects current user
     """
     try:
-        disable_user(get_current_user(token).username, token)
+        disable_user(user.username, is_logged_in(user))
     except Exception as e:
         logger.error(f"Error on logout: {e}")
         return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -110,10 +110,10 @@ async def logout(token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
 
 
 @app.get("/me", tags=["auth"])
-async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+async def me(user: Annotated[User, Depends(get_auth_user)]) -> User:
+    """
+    Retrieve the currently authenticated user (Bearer ou Basic).
+    """
     return user
 
 
