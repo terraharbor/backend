@@ -64,7 +64,7 @@ jobs:
         TF_PROJECT_NAME: some-big-project
         TF_STATE_NAME: default
       run: |
-        TF_LOG=debug terraform init \
+        terraform init \
           -backend-config="address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
           -backend-config="lock_address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
           -backend-config="unlock_address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
