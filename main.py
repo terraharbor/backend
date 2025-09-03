@@ -1,10 +1,11 @@
 from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
-from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from user import User
 from hashlib import sha512
 from auth_functions import *
+from fastapi_custom_dependancy import get_auth_user
 import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
