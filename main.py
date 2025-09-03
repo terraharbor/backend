@@ -2,8 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
-from user import User
-from hashlib import sha512
+
 from auth_functions import *
 from fastapi_custom_dependancy import get_auth_user
 import os, json
@@ -15,7 +14,7 @@ DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
 
 app = FastAPI(title="TerraHarbor")
 
-# Add CORS middleware to fix communication between frontend and backend: 
+# Add CORS middleware to fix communication between frontend and backend:
 # browser was refusing backend response
 app.add_middleware(
     CORSMiddleware,
@@ -75,14 +74,18 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
 
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
+
     salted_password = user.salt + form_data.password
 
     if user.sha512_hash != sha512(salted_password.encode()).hexdigest():
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
-    access_token = token_hex(32)
-    update_user_token(user.username, access_token)
+
+    # Check if the user is online already
+    access_token = is_logged_in(user)
+    if not access_token:
+        access_token = token_hex(32)
+        update_user_token(user.username, access_token)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/login")
@@ -93,12 +96,26 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     return await token(form_data)
 
 
+@app.post("/logout", tags=["auth"])
+async def logout(token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
+    """
+    Disconnects current user
+    """
+    try:
+        disable_user(get_current_user(token).username, token)
+    except Exception as e:
+        logger.error(f"Error on logout: {e}")
+        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(status_code=status.HTTP_200_OK)
+
+
 @app.get("/me", tags=["auth"])
-async def me(user: Annotated[User, Depends(get_auth_user)]) -> User:
-    """
-    Retrieve the currently authenticated user (Bearer ou Basic).
-    """
+async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     return user
+
 
 # GET  /state/{project}/{state_name}
 @app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])

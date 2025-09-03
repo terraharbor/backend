@@ -156,6 +156,35 @@ def register_user(user: User) -> None:
             logger.error("Error closing database connection")
 
 
+def is_logged_in(user: User) -> str:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                SELECT t.token
+                FROM auth_tokens t
+                JOIN users u ON u.id = t.user_id
+                WHERE u.username = %s""", (user.username,))
+
+                row = cur.fetchone()
+                if row:
+                    token = row[0]
+                    if is_bearer_token_valid(token):
+                        # If token is still valid, return it
+                        return token
+                    else:
+                        # Token validity check has blown the token off the auth table, return nothing
+                        return None
+    except Exception as e:
+        logger.error(f"Error while checking for login-ness for user '{user.username}': {e}")
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
+
+
 def update_user_token(username: str, token: str) -> None:
     """
     Update the user's token in the DB (insert new token for user).
@@ -176,6 +205,10 @@ def update_user_token(username: str, token: str) -> None:
                     "INSERT INTO auth_tokens (user_id, token, created_at, ttl) VALUES (%s, %s, NOW(), %s::INTERVAL)",
                     (user_id, token, f'{token_validity} seconds')
                 )
+                # Update disabled flag
+                cur.execute(
+                    "UPDATE users SET disabled=FALSE WHERE id = %s", (user_id,)
+                )
     except Exception as e:
         raise RuntimeError(f"Failed to update user token: {e}")
     finally:
@@ -183,6 +216,35 @@ def update_user_token(username: str, token: str) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
+
+
+
+def disable_user(username: str, token: str) -> None:
+    """
+    Disable a given user in the system. Needs its last token for safety (preventing user delog solely through name)
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                WITH r AS (
+                    SELECT t.user_id
+                    FROM auth_tokens t
+                    JOIN users u ON u.id = t.user_id
+                    WHERE t.token = %s
+                    AND u.username = %s)
+                UPDATE users
+                SET disabled = TRUE
+                FROM r
+                WHERE users.id = r.user_id""", (token, username,))
+
+                cur.execute("""
+                DELETE FROM auth_tokens
+                WHERE token = %s""", (token,))
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to disable user: {e}")
 
 
 def is_bearer_token_valid(token: str) -> bool:
@@ -194,7 +256,7 @@ def is_bearer_token_valid(token: str) -> bool:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT t.created_at, t.ttl, u.disabled
+                    SELECT t.id, t.created_at, t.ttl, u.disabled, u.username
                     FROM auth_tokens t
                     JOIN users u ON u.id = t.user_id
                     WHERE t.token = %s
@@ -202,12 +264,21 @@ def is_bearer_token_valid(token: str) -> bool:
                 row = cur.fetchone()
                 if not row:
                     return False
-                created_at, ttl, disabled = row
+                aid, created_at, ttl, disabled, username = row
                 if disabled:
                     return False
                 # Verifies that the token has not expired
                 cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
                 valid = cur.fetchone()[0]
+                # Refresh the token if valid
+                if valid:
+                    cur.execute("""
+                    UPDATE auth_tokens
+                    SET created_at = NOW()
+                    WHERE id = %s""", (aid,))
+                else:
+                    # Out you go, keep the auth_tokens table coherent
+                    disable_user(username, token)
                 logger.info(f"Checked token {token}: valid={valid}")
                 return valid
     except Exception as e:

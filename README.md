@@ -118,4 +118,13 @@ curl -X GET http://localhost:8000/me \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
 
+* `POST`:`/logout/`: Logs out user
+
+#### Request Example
+
+```zsh
+curl -X POST http://localhost:8000/logout \
+    -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
+
 Please note that for the moment, no organization nor project notions have been implemented.
