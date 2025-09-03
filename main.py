@@ -1,3 +1,4 @@
+import datetime
 from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -116,6 +117,22 @@ async def get_state(
         raise HTTPException(status_code=404, detail="State not found")
     return FileResponse(path, media_type="application/octet-stream")
 
+# GET /state/{project}/{state_name}/status
+@app.get("/state/{project}/{state_name}/status", response_model=dict, tags=["auth"])
+async def get_state_status(
+    project: str,
+    state_name: str,
+    user: Annotated[User, Depends(get_auth_user)],
+) -> dict:
+    """
+    Method to get the status of a state: if a state is locked or not.
+    """
+    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    if os.path.exists(lock_path):
+        with open(lock_path, "r") as f:
+            return {"status": "locked", **json.loads(f.read())}
+    return {"status": "unlocked", "locker": "", "timestamp": ""}
+
 # POST /state/{project}/{state_name}
 @app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
 async def put_state(
@@ -159,8 +176,13 @@ async def lock_state(
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
             return Response(f.read(), status_code=status.HTTP_423_LOCKED, media_type="application/json")
+
+    json_body = json.loads(body)
+    json_body["timestamp"] = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    json_body["locker"] = user.username
+
     with open(lock_path, "w") as f:
-        f.write(body)
+        f.write(json.dumps(json_body))
     return Response(status_code=status.HTTP_200_OK)
 
 # UNLOCK /state/{project}

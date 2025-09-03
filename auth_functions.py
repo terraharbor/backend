@@ -1,12 +1,11 @@
 from hashlib import sha512
-from fastapi import HTTPException, Header
+from fastapi import HTTPException
 from fastapi.security import HTTPBasicCredentials
 from user import User
 import psycopg2
 import os
 import time
 import logging
-import base64
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
