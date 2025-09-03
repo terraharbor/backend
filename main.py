@@ -51,6 +51,8 @@ async def register(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -
     This endpoint creates a new user with the provided username, password, full name, and email.
     The password is hashed using SHA-512.
     """
+    logger.info(f"Registering user: {form_data.username}")
+
     if not form_data.username or not form_data.password:
         raise HTTPException(status_code=400, detail="All fields are required")
 
@@ -58,9 +60,11 @@ async def register(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -
     salted_password = salt + form_data.password
     user = User(username=form_data.username.strip(), disabled=True, sha512_hash=sha512(salted_password.encode()).hexdigest(), salt=salt)
     if user_exists(user):
+        logger.info(f"User {user.username} already exists")
         raise HTTPException(status_code=400, detail="User already exists")
     else:
         register_user(user)
+        logger.info(f"User {user.username} registered successfully")
         return {"message": "User registered successfully", "user": user}
 
 @app.post("/token")
@@ -68,14 +72,17 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     """
     Authenticates a user and returns an access token.
     """
+    logger.info(f"Authenticating user: {form_data.username}")
     user = get_user(form_data.username)
 
     if not user:
+        logger.warning(f"User {form_data.username} not found")
         raise HTTPException(status_code=400, detail="Invalid credentials")
     
     salted_password = user.salt + form_data.password
 
     if user.sha512_hash != sha512(salted_password.encode()).hexdigest():
+        logger.warning(f"Invalid credentials for user: {form_data.username}")
         raise HTTPException(status_code=400, detail="Invalid credentials")
     
     access_token = token_hex(32)
@@ -95,44 +102,63 @@ async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User | None:
     """
     Retrieve the currently authenticated user.
     """
-    return get_current_user(token)
+    logger.info(f"Call on '/me': {token}")
+    user = get_current_user(token)
+    if not user:
+        logger.warning(f"Current user not found. Token: {token}")
+        return None
+    logger.info(f"Current user retrieved for {token}: {user.username}")
+    return user
 
 # GET  /state/{project}/{state_name}
 @app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])
 async def get_state(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> FileResponse:
+    logger.info(f"Getting state for project: {project}, state_name: {state_name}")
     if not is_token_valid(token):
         raise HTTPException(status_code=401, detail="Invalid token")
     if version is not None:
+        logger.info(f"Version {version} requested for state {state_name} in project {project}")
         path = _versioned_state_path(project, state_name, version)
     else:
         path = _latest_state_path(project, state_name)
+    logger.info(f"State asked: project={project}, state_name={state_name}, path={path}")
     if not os.path.exists(path):
+        logger.error(f"State not found: project={project}, state_name={state_name}, path={path}")
         raise HTTPException(status_code=404, detail="State not found")
     return FileResponse(path, media_type="application/octet-stream")
 
 # POST /state/{project}/{state_name}
 @app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
 async def put_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
+    logger.info(f"Putting state for project: {project}, state_name: {state_name}")
     if not is_token_valid(token):
+        logger.warning(f"Invalid token for user: {get_current_user(token).username}")
         raise HTTPException(status_code=401, detail="Invalid token")
     body = await request.body()
+    logger.info(f"User {get_current_user(token).username} is putting state: project={project}, state_name={state_name}")
     if not body:
+        logger.warning(f"Empty body for state: project={project}, state_name={state_name}")
         raise HTTPException(status_code=400, detail="Empty body")
     # Get the version from the query parameter or the JSON body
     if version is None:
         try:
             json_body = json.loads(body)
             version = json_body.get("version")
+            logger.info(f"Version {version} found in body for state: project={project}, state_name={state_name}")
         except Exception:
             pass
     if version is None:
+        logger.warning(f"Missing version for state: project={project}, state_name={state_name}")
         raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
+    
     version_path = _versioned_state_path(project, state_name, version)
     latest_path = _latest_state_path(project, state_name)
     with open(version_path, "wb") as f:
         f.write(body)
+        logger.info(f"State version saved in {version_path}")
     with open(latest_path, "wb") as f:
         f.write(body)
+        logger.info(f"Latest state updated in {latest_path}")
     return Response(status_code=status.HTTP_200_OK)
 
 
