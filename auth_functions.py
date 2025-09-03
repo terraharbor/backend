@@ -1,6 +1,3 @@
-
-from functools import wraps
-
 from user import User
 import psycopg2
 import os
@@ -90,7 +87,7 @@ def get_current_user(token) -> str | User | None:
     Retrieve the currently authenticated user from the request context.
     """
     if not is_token_valid(token):
-        return "Token not valid"
+        return None
     user: User = decode_token(token)
     return user
 

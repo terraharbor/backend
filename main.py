@@ -68,7 +68,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     return await token(form_data)
 
 
-@app.post("/logout/", tags=["auth"])
+@app.post("/logout", tags=["auth"])
 async def logout(token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
     """
     Disconnects current user
@@ -82,11 +82,12 @@ async def logout(token: Annotated[str, Depends(oauth2_scheme)]) -> Response:
 
 
 @app.get("/me", tags=["auth"])
-async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User | None:
-    """
-    Retrieve the currently authenticated user.
-    """
-    return get_current_user(token)
+async def me(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return user
+
 
 # GET  /state/{project}/{state_name}
 @app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])
