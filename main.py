@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
-from user import User
+import datetime
 from hashlib import sha512
 from auth_functions import *
 import os, json
@@ -36,6 +36,9 @@ def _latest_state_path(project: str, state_name: str) -> str:
 
 def _versioned_state_path(project: str, state_name: str, version: int) -> str:
     return os.path.join(_state_dir(project, state_name), f"{version}.tfstate")
+
+def _versioned_state_info_path(project: str, state_name: str, version: int) -> str:
+    return os.path.join(_state_dir(project, state_name), f"{version}.tfstate.meta")
 
 @app.get("/health")
 async def health() -> dict:
@@ -110,6 +113,44 @@ async def get_state(project: str, state_name: str, token: Annotated[str, Depends
         raise HTTPException(status_code=404, detail="State not found")
     return FileResponse(path, media_type="application/octet-stream")
 
+# GET /states/{project}/{state_name}
+@app.get("/states/{project}/{state_name}", tags=["auth"])
+async def get_states(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)]) -> list:
+    """
+    Endpoint to retrieve all the existing versions of a state
+    """
+    
+    if not is_token_valid(token):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    path = _state_dir(project, state_name)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="State not found")
+    
+    versions = [
+        f.split(".tfstate")[0]
+        for f in os.listdir(path)
+        if f.endswith(".tfstate") and f != "latest.tfstate"
+    ]
+    result = []
+    for version in versions:
+        meta_path = os.path.join(path, f"{version}.tfstate.meta")
+        if os.path.exists(meta_path):
+            with open(meta_path, "r") as meta_file:
+                meta = json.load(meta_file)
+            result.append({
+                "version": version,
+                "created by": meta.get("uploaded_by"),
+                "upload date": meta.get("timestamp")
+            })
+        else:
+            result.append({
+                "version": version,
+                "created by": None,
+                "upload date": None
+            })
+    return result
+
 # POST /state/{project}/{state_name}
 @app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
 async def put_state(project: str, state_name: str, request: Request, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
@@ -127,12 +168,19 @@ async def put_state(project: str, state_name: str, request: Request, token: Anno
             pass
     if version is None:
         raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
+    
     version_path = _versioned_state_path(project, state_name, version)
     latest_path = _latest_state_path(project, state_name)
+    info_path = _versioned_state_info_path(project, state_name, version)
+
+    user = get_current_user(token)
+
     with open(version_path, "wb") as f:
         f.write(body)
     with open(latest_path, "wb") as f:
         f.write(body)
+    with open(info_path, "w") as f:
+        f.write(json.dumps({"uploaded_by": user.username, "timestamp": datetime.datetime.now().isoformat()}))
     return Response(status_code=status.HTTP_200_OK)
 
 
@@ -172,18 +220,21 @@ async def unlock_state(project: str, state_name: str, request: Request, token: A
     os.remove(lock_path)
     return Response(status_code=status.HTTP_200_OK)
 
-# DELETE /state/{project}
+# DELETE /state/{project}/{state_name}
 @app.delete("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
 async def delete_state(project: str, state_name: str, token: Annotated[str, Depends(oauth2_scheme)], version: int = None) -> Response:
     if not is_token_valid(token):
         raise HTTPException(status_code=401, detail="Invalid token")
     state_dir = _state_dir(project, state_name)
-    logger.info(f"State asked to delete: {state_dir}")
+    # logger.info(f"State asked to delete: {state_dir}")
     if version is not None:
         path = _versioned_state_path(project, state_name, version)
+        meta_path = _versioned_state_info_path(project, state_name, version)
         if os.path.exists(path):
-            logger.info(f"Deleting state version: {path}")
+            # logger.info(f"Deleting state version: {path}")
             os.remove(path)
+            if os.path.exists(meta_path):
+                os.remove(meta_path)
             # If the latest version is deleted, update latest.tfstate
             versions = [int(f.split('.tfstate')[0]) for f in os.listdir(state_dir) if f.endswith('.tfstate') and f != 'latest.tfstate']
             if versions:
@@ -202,6 +253,6 @@ async def delete_state(project: str, state_name: str, token: Annotated[str, Depe
     else:
         # Remove all versions and latest
         for file in os.listdir(state_dir):
-            logger.info(f"Deleting state file: {file}")
+            # logger.info(f"Deleting state file: {file}")
             os.remove(os.path.join(state_dir, file))
     return Response(status_code=status.HTTP_200_OK)

@@ -85,7 +85,7 @@ def get_user(username: str) -> User | None:
             logger.error("Error closing database connection")
     return None
 
-def get_current_user(token) -> str | None:
+def get_current_user(token) -> User | None:
     """
     Retrieve the currently authenticated user from the request context.
     """
