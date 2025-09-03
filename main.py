@@ -129,9 +129,6 @@ async def get_states(
     """
     Endpoint to retrieve all the existing versions of a state
     """
-    
-    if not is_bearer_token_valid(token):
-        raise HTTPException(status_code=401, detail="Invalid token")
 
     path = _state_dir(project, state_name)
     if not os.path.exists(path):
