@@ -8,7 +8,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apk add --no-cache su-exec
+RUN apk add --no-cache su-exec curl
 RUN addgroup -S app && adduser -S app -G app
 
 COPY . .
