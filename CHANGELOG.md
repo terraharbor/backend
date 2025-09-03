@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.1.8](https://github.com/terraharbor/backend/compare/v0.1.7...v0.1.8) (2025-09-03)
+
+
+### Features
+
+* Implement compatibility with basic auth ([86062b6](https://github.com/terraharbor/backend/commit/86062b64bd07f2b294b88ed47792f97b694a6959))
+
+
+### Bug Fixes
+
+* fix for custom methods ([7ac7bc2](https://github.com/terraharbor/backend/commit/7ac7bc29e268daf29d360dc2696685ed1a8a8ccc))
+* fix for custom methods ([d363294](https://github.com/terraharbor/backend/commit/d3632947f1e59ab9107a07b28260f837c5918fc3))
+* Implemented custom dependency to handle basic and bearers ([12789e9](https://github.com/terraharbor/backend/commit/12789e9bb5e2e8ea969a9ea79ffadef3c9ec3f07))
+* trying to fix ([0b67cf9](https://github.com/terraharbor/backend/commit/0b67cf91e4aa292fc733ae71cfefe65fc6a028fa))
+* typo ([a038e95](https://github.com/terraharbor/backend/commit/a038e95e16f38703651b02686af174a26b91fee4))
+* use `/health` instead of `/health_check` and add `curl` ([d01e13a](https://github.com/terraharbor/backend/commit/d01e13a861285d861a833f3974bb80bc738bb219))
+* use `/health` instead of `/health_check` and add `curl` ([a028cb4](https://github.com/terraharbor/backend/commit/a028cb4cf4e83e192b7f069168d46eb6d8d21d6e))
+
+
+### Styles
+
+* made a separate file for the dependancy ([8a3380a](https://github.com/terraharbor/backend/commit/8a3380a753be04974c3b702438aeb3a2d821509a))
+* made a separate file for the dependancy ([b0f8d85](https://github.com/terraharbor/backend/commit/b0f8d8510402f1f9947e53be315cf1cc50f00d28))
+
+
+### Miscellaneous Chores
+
+* Merge main into feat/basic_auth ([bc61e68](https://github.com/terraharbor/backend/commit/bc61e687c66b4071229178c88e43e8e752f55599))
+* Merge main into feat/basic_auth ([ceb01c1](https://github.com/terraharbor/backend/commit/ceb01c1ba63b9e6ba7f9c7a48696427a1cd90dc0))
+* Merge pull request [#50](https://github.com/terraharbor/backend/issues/50) from terraharbor/fix/health ([d01e13a](https://github.com/terraharbor/backend/commit/d01e13a861285d861a833f3974bb80bc738bb219))
+* Merge pull request [#62](https://github.com/terraharbor/backend/issues/62) from terraharbor/fix/lock-unlock-compat ([7ac7bc2](https://github.com/terraharbor/backend/commit/7ac7bc29e268daf29d360dc2696685ed1a8a8ccc))
+
 ## [0.1.7](https://github.com/terraharbor/backend/compare/v0.1.6...v0.1.7) (2025-09-02)
 
 
