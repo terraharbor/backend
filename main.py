@@ -93,15 +93,10 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
 
 
 @app.get("/me", tags=["auth"])
-async def me(
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
-    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None
-) -> User | None:
-    logger.info(f"[ROUTE /me] token={token} credentials={credentials}")
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"[ROUTE /me] token={token} credentials={credentials}")
-    user = get_authenticated_user(token, credentials)
+async def me(user: Annotated[User, Depends(get_auth_user)]) -> User:
+    """
+    Retrieve the currently authenticated user (Bearer ou Basic).
+    """
     return user
 
 # GET  /state/{project}/{state_name}
@@ -109,11 +104,9 @@ async def me(
 async def get_state(
     project: str,
     state_name: str,
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
-    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None,
+    user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> FileResponse:
-    user = get_authenticated_user(token, credentials)
     if version is not None:
         path = _versioned_state_path(project, state_name, version)
     else:
@@ -128,11 +121,9 @@ async def put_state(
     project: str,
     state_name: str,
     request: Request,
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
-    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None,
+    user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> Response:
-    user = get_authenticated_user(token, credentials)
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
@@ -160,10 +151,8 @@ async def lock_state(
     project: str,
     state_name: str,
     request: Request,
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
-    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None
+    user: Annotated[User, Depends(get_auth_user)]
 ) -> Response:
-    user = get_authenticated_user(token, credentials)
     lock_path = os.path.join(_state_dir(project, state_name), ".lock")
     body = (await request.body()).decode() or "{}"
     if os.path.exists(lock_path):
@@ -179,10 +168,8 @@ async def unlock_state(
     project: str,
     state_name: str,
     request: Request,
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
-    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None
+    user: Annotated[User, Depends(get_auth_user)]
 ) -> Response:
-    user = get_authenticated_user(token, credentials)
     lock_path = os.path.join(_state_dir(project, state_name), ".lock")
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
@@ -205,11 +192,9 @@ async def unlock_state(
 async def delete_state(
     project: str,
     state_name: str,
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
-    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)] = None,
+    user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> Response:
-    user = get_authenticated_user(token, credentials)
     state_dir = _state_dir(project, state_name)
     logger.info(f"State asked to delete: {state_dir}")
     if version is not None:
