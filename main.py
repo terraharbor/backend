@@ -15,7 +15,7 @@ from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
 from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
-    get_accessible_projects_for_user_id
+    get_accessible_projects_for_user_id, get_all_project_tokens
 
 app = FastAPI(title="TerraHarbor")
 
@@ -313,3 +313,25 @@ async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -
         res.append({f"{perm.projectId} - {perm.projectName}": "READ" if perm.permission == 1 else "WRITE" if perm.permission == 2 else "READ-WRITE"})
 
     return res
+
+
+@app.get("/token/all")
+async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    res = get_all_project_tokens(user.username)
+
+    display = {}
+
+    for name, res_in in res.items():
+        token_display = []
+        for project_token in res_in:
+            token_display.append({
+                "token": project_token.token,
+                "ID": project_token.projectId,
+                "Name": project_token.projectName,
+                "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
+            })
+        display.update({
+            name: token_display
+        })
+
+    return display
