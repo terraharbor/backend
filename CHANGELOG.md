@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.1.9](https://github.com/terraharbor/backend/compare/v0.1.8...v0.1.9) (2025-09-04)
+
+
+### Features
+
+* implemented lock ID check ([2de6001](https://github.com/terraharbor/backend/commit/2de60011ac262f6eb128d8e4978a929825e66b48))
+* implemented lock ID check ([255f09b](https://github.com/terraharbor/backend/commit/255f09bb2527257e0e198c94079b505e316353a6))
+* use backend to test Terraform ([2792bfd](https://github.com/terraharbor/backend/commit/2792bfd64b365bb50cb6d1aab8c92bcc3edd7947))
+
+
+### Bug Fixes
+
+* disable commit of .terraform folders ([c4c3cda](https://github.com/terraharbor/backend/commit/c4c3cdad30925a833dc8418b3dbede63ac9a21a0))
+
+
+### Miscellaneous Chores
+
+* commit the .env file ([59b5e75](https://github.com/terraharbor/backend/commit/59b5e75c61ac2dffa72a7e4956bd239fcc86df7c))
+* Merge main into feat/lock_id_verification ([0cde3ad](https://github.com/terraharbor/backend/commit/0cde3ad4cfd3df8cbde26dadd3406a3cfa52d916))
+* merge pull request [#53](https://github.com/terraharbor/backend/issues/53) from terraharbor/tests/terraform-test ([b688d61](https://github.com/terraharbor/backend/commit/b688d619908b819d615e341c98ce8d284a7ad7dd))
+* merge pull request [#66](https://github.com/terraharbor/backend/issues/66) from terraharbor/feat/lock_id_verification ([2de6001](https://github.com/terraharbor/backend/commit/2de60011ac262f6eb128d8e4978a929825e66b48))
+
+
+### Code Refactoring
+
+* remove debug output ([6dae743](https://github.com/terraharbor/backend/commit/6dae7435dd37dfc690f3a956f3be3399b1eac6e4))
+
+
+### Tests
+
+* add beginning of tests ([2869daf](https://github.com/terraharbor/backend/commit/2869dafd7db43c01bef6694c918ce3099749e1e5))
+
+
+### Continuous Integration
+
+* add Terraform steps ([321d8f9](https://github.com/terraharbor/backend/commit/321d8f975fb9eb3e9c55f8ecdfd13076fa31b8e3))
+* add test with steps that start the docker compose ([7c4bccd](https://github.com/terraharbor/backend/commit/7c4bccdd43edf8ff71a1565510a9f481375b85af))
+
 ## [0.1.8](https://github.com/terraharbor/backend/compare/v0.1.7...v0.1.8) (2025-09-03)
 
 
