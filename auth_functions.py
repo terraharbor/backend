@@ -86,6 +86,10 @@ def get_user(username: str) -> User | None:
     return None
 
 def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials = None) -> User | None:
+    """
+    Retrieve the authenticated user based on the provided token or credentials.
+    """
+
     logger.info(f"token: {token}")
     logger.info(f"credentials: {credentials}")
     if token:
@@ -177,6 +181,11 @@ def register_user(user: User) -> None:
 
 
 def is_logged_in(user: User) -> str:
+    """
+    Check if the user is logged in by verifying the token in the DB.
+    If logged in, return the token, else return None.
+    """
+    
     try:
         conn = get_db_connection()
         with conn:

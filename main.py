@@ -154,6 +154,9 @@ async def put_state(
     user: Annotated[User, Depends(get_auth_user)],
     ID: str = None
 ) -> Response:
+    """
+    Update the state for a specific project and state name.
+    """
     logger.info(f"PUT state called for project={project} state_name={state_name} user={user.username} ID={ID}")
     body = await request.body()
     if not body:
@@ -187,6 +190,9 @@ async def lock_state(
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
 ) -> Response:
+    """
+    Locks the state for a specific project and state name.
+    """
     lock_path = os.path.join(_state_dir(project, state_name), ".lock")
     body = (await request.body()).decode() or "{}"
     if os.path.exists(lock_path):
@@ -209,6 +215,9 @@ async def unlock_state(
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
 ) -> Response:
+    """
+    Unlocks the state for a specific project and state name.
+    """
     lock_path = os.path.join(_state_dir(project, state_name), ".lock")
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
@@ -234,6 +243,12 @@ async def delete_state(
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> Response:
+    """
+    Delete the state for a specific project and state name.
+    If version is provided, only that version is deleted.
+    If no version is provided, all versions are deleted.
+    """
+
     state_dir = _state_dir(project, state_name)
     logger.info(f"State asked to delete: {state_dir}")
     if version is not None:
@@ -268,6 +283,10 @@ async def delete_state(
 # Project token endpoints
 @app.get("/token/project/{project_id}")
 async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, permissions: int) -> dict:
+    """
+    Create a new project token with specified permissions.
+    Permissions: 1 = read, 2 = write, 3 = read-write
+    """
     try:
         project_token = create_project_token(user.username, project_id, permissions)
     except Exception as e:
@@ -279,6 +298,9 @@ async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
 
 @app.delete("/token/project/{project_id}/{project_token}", response_class=Response)
 async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    """
+    Delete a project token.
+    """
     try:
         revoke_project_token(user.username, project_id, project_token)
     except Exception as e:
@@ -290,6 +312,9 @@ async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
 
 @app.get("/state/{project_id}/{project_token}/canRead", response_class=Response)
 async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    """
+    Check if the user has read rights for the specified project and token.
+    """
     if not has_read_access(project_id, project_token):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     else:
@@ -298,6 +323,9 @@ async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project
 
 @app.get("/state/{project_id}/{project_token}/canWrite", response_class=Response)
 async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    """
+    Check if the user has write rights for the specified project and token.
+    """
     if not has_write_access(project_id, project_token):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     else:
@@ -306,6 +334,9 @@ async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], projec
 
 @app.get("/teams/list")
 async def list_accesses(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    """
+    List all team accesses for the user.
+    """
     perms = fetch_team_tokens_for_username(user.username)
 
     res = {}
@@ -324,6 +355,9 @@ async def list_accesses(user: Annotated[User, Depends(get_auth_user)]) -> dict:
 
 @app.get("/state/list")
 async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    """
+    List all project accesses for the user.
+    """
     user_id = get_user_id(user.username)
 
     perms = get_accessible_projects_for_user_id(user_id)
@@ -338,6 +372,9 @@ async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -
 
 @app.get("/token/all")
 async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    """
+    List all project tokens for the user.
+    """
     res = get_all_project_tokens(user.username)
 
     display = {}
