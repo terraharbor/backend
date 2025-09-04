@@ -52,7 +52,7 @@ def decode_token(token: str) -> User | None:
                         token=token,
                         token_validity=expiration_time,
                         salt=salt,
-                        is_admin=bool(int(is_admin))
+                        is_admin=is_admin
                     )
     except Exception as e:
         print(f"Error decoding token: {e}")
