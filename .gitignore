@@ -1,5 +1,5 @@
 .idea
-venv
+*venv
 .env
 !tests/docker-compose/.env
 __pycache__/*
