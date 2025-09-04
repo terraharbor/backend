@@ -284,9 +284,11 @@ def is_bearer_token_valid(token: str) -> bool:
                 """, (token,))
                 row = cur.fetchone()
                 if not row:
+                    logger.info(f"Checked token {token}: valid=False (not found)")
                     return False
                 aid, created_at, ttl, disabled, username = row
                 if disabled:
+                    logger.info(f"Checked token {token}: valid=False (disabled)")
                     return False
                 # Verifies that the token has not expired
                 cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
