@@ -31,7 +31,7 @@ def get_all_users() -> list[dict[str, str]]:
 
 def update_user(user_id: int, username: str, is_admin: bool) -> dict:
     if not isinstance(is_admin, bool):
-        return Response(status_code=400, details="IsAdmin flag not in valid values set")
+        raise HTTPException(status_code=400, detail="IsAdmin flag not in valid values set")
     conn = get_db_connection()
 
     with conn:
