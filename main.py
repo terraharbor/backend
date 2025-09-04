@@ -18,8 +18,9 @@ from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
     get_accessible_projects_for_user_id, get_all_project_tokens
 
-from projects import get_projects_for_user_id
-from teams import get_teams_for_user
+from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
+    delete_project, create_project
+from teams import get_teams_for_user, get_teams_for_project_id
 
 app = FastAPI(title="TerraHarbor")
 
@@ -380,3 +381,54 @@ async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> 
         })
 
     return display
+
+
+@app.get("/projects")
+async def get_projects(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    # ID, name, desc, last_updated_timestamp, list[teamId]
+    return get_all_projects()
+
+
+@app.get("/projects/{project_id}")
+async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+    return get_project_for_project_id(project_id)
+
+
+@app.get("/projects/{project_id}/teams")
+async def get_teams_for_project(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+    return get_teams_for_project_id(project_id)
+
+@app.patch("/projects/{project_id}")
+async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str, request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return update_project(int(project_id), data_dict['name'], data_dict['description'])
+    else:
+        return {"ERROR": "Must be admin to update project"}
+
+@app.delete("/projects/{project_id}")
+async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> dict:
+    if user.is_admin:
+        return delete_project(int(project_id))
+    else:
+        return {"ERROR": "Must be admin to remove project"}
+
+
+@app.post("/projects")
+async def create_new_project(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    if user.is_admin:
+        body = (await request.body()).decode() or "{}"
+
+        data_dict = json.loads(body)
+
+        return create_project(data_dict["name"], data_dict["description"])
+    else:
+        return {"ERROR": "Must be admin to create project"}
+
+
+
+if __name__=='__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)

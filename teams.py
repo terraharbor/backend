@@ -75,6 +75,34 @@ def get_teams_for_user(user_id: int) -> list[dict]:
                 return [{"Error": "notFound"}]
 
 
+def get_teams_for_project_id(project_id: str) -> list[dict]:
+    conn = get_db_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                        SELECT o.id, o.name, o.description
+                        FROM teams o
+                                 JOIN project_teams pt ON o.id = pt.team_id
+                        WHERE pt.project_id = %s
+                        """, (project_id,))
+
+            rows = cur.fetchall()
+            if rows:
+                out = []
+                for row in rows:
+                    team_id, name, desc = row
+                    out.append({"ID": team_id,
+                                "name": name,
+                                "description": desc,
+                                "userIds": get_users_ids_for_team(team_id)})
+
+                return out
+            else:
+                logger.error(f"Error when fetching teams for project ID {project_id}")
+                return [{"Error": "notFound"}]
+
+
 def get_users_ids_for_team(team_id: int) -> list[int]:
     conn = get_db_connection()
 
