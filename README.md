@@ -12,6 +12,45 @@ in `infrastructure/docker-compose/ in order to start the containers.<br>
 when the app is running, visit `http://localhost:8000/docs/<br>
 This page displays forms allowing to test the different endpoints.
 
+### Unit Tests
+
+In order to execute the unit tests, create a virtual env and use it:
+
+```zsh
+python3 -m venv test-venv
+source ./test-venv/bin/activate
+```
+
+Then install the dependencies:
+
+```zsh
+pip install pytest
+pip install -r requirements.txt
+```
+
+Then you can execute the tests:
+
+```zsh
+pytest
+```
+
+#### Add a unit test
+
+Go to `/tests/python/unit_tests/`.
+
+To add a test, you can add a file or go to an existing file, and create a new function. The function will be the test, and the function's name must be explicit about what is tested, and what should be returned. Ex: `test_hello_world__should_return_true`. The end of the test must be an `assert <condition>` and not a return.
+
+A unit test is supposed to be executing within a fraction of second, and only test the function that is tested's behavior. Meaning that another non-default function call should be mocked, in order to control its output, and test the sole tested function behavior. Especially if the other function makes call requests.
+
+**Basic Example Format:**
+
+```python
+def test_hello_world__should_return_true():
+  expected_result: str = "hello world"
+  output: str = hello_world()
+  assert expected_result == output
+```
+
 ## Endpoints
 
 There are currently several basic endpoints:
