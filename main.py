@@ -26,7 +26,8 @@ from projects_tokens import create_project_token, revoke_project_token, has_read
 
 from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
     delete_project, create_project
-from teams import get_teams_for_user, get_teams_for_project_id, get_all_teams, get_team_for_team_id
+from teams import get_teams_for_user, get_teams_for_project_id, get_all_teams, get_team_for_team_id, \
+    get_users_for_team_id, get_projects_for_team_id, update_team_by_team_id, delete_team, create_team
 
 app = FastAPI(title="TerraHarbor")
 
@@ -444,19 +445,38 @@ async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id:
 
 @app.get("/teams/{team_id}/users")
 async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
-
+    return get_users_for_team_id(int(team_id))
 
 @app.get("/teams/{team_id}/projects}")
 async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
-
+    return get_projects_for_team_id(int(team_id))
 
 @app.patch("/teams/{team_id}")
 async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str, request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
+    else:
+        return {"ERROR": "Must be admin to update team"}
 
 
 @app.delete("/teams/{team_id}")
 async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
-
+    if user.is_admin:
+        return delete_team(int(team_id))
+    else:
+        return {"ERROR": "Must be admin to delete team"}
 
 @app.post("/teams")
 async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return create_team(data_dict['name'], data_dict['description'])
+    else:
+        return {"ERROR": "Must be admin to create team"}
