@@ -1,5 +1,5 @@
 ---
-name: "terraform-test"
+name: "terraform-tests"
 
 on:
   workflow_dispatch:
