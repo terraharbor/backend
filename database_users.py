@@ -28,6 +28,8 @@ def get_all_users() -> list[dict[str, str]]:
                 return []
 
 def update_user(user_id: int, username: str, is_admin: str) -> dict:
+    if is_admin not in ['1', '0', 1, 0]:
+        return {"ERROR": "IsAdmin flag not in valid values set"}
     conn = get_db_connection()
 
     with conn:
