@@ -13,7 +13,9 @@ import logging
 from lock_helpers import check_lock_id
 from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
-from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access
+from team_accesses import fetch_team_tokens_for_username
+from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
+    get_accessible_projects_for_user_id, get_all_project_tokens
 
 app = FastAPI(title="TerraHarbor")
 
@@ -257,7 +259,7 @@ async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
 @app.delete("/token/project/{project_id}/{project_token}", response_class=Response)
 async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
     try:
-        revoke_project_token(project_id, project_token)
+        revoke_project_token(user.username, project_id, project_token)
     except Exception as e:
         logger.error(f"Failed to revoke project token: {e}")
         raise HTTPException(status_code=403, detail="Failed to revoke project token")
@@ -279,3 +281,57 @@ async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], projec
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     else:
         return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/teams/list")
+async def list_accesses(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    perms = fetch_team_tokens_for_username(user.username)
+
+    res = {}
+    for perm in perms:
+        perm_dict = {perm.team : {
+            "Admin": perm.admin,
+            "CanAddProject": perm.can_add_proj,
+            "CanRemoveProject": perm.can_del_proj,
+            "CanCreateProjectToken": perm.can_add_token,
+            "CanRemoveProjectToken": perm.can_del_token
+        }}
+        res.update(perm_dict)
+
+    return res
+
+
+@app.get("/state/list")
+async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    user_id = get_user_id(user.username)
+
+    perms = get_accessible_projects_for_user_id(user_id)
+
+    res: list[dict[str, str]] = []
+
+    for perm in perms:
+        res.append({f"{perm.projectId} - {perm.projectName}": "READ" if perm.permission == 1 else "WRITE" if perm.permission == 2 else "READ-WRITE"})
+
+    return res
+
+
+@app.get("/token/all")
+async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    res = get_all_project_tokens(user.username)
+
+    display = {}
+
+    for name, res_in in res.items():
+        token_display = []
+        for project_token in res_in:
+            token_display.append({
+                "token": project_token.token,
+                "ID": project_token.projectId,
+                "Name": project_token.projectName,
+                "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
+            })
+        display.update({
+            name: token_display
+        })
+
+    return display

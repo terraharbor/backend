@@ -7,6 +7,7 @@ from typing import Union
 from pydantic import BaseModel
 
 from auth_functions import get_db_connection, get_user_id
+from team_accesses import fetch_team_token_for_username_and_team
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,8 @@ def parse_permission_flags(read, write) -> int:
 
 class ProjectToken(BaseModel):
     token: str
-    projectId: str
+    projectId: int
+    projectName: str
     permission: int
 
 
@@ -37,7 +39,15 @@ def create_project_token(username: str, project_id: str, permission: Union[PERMI
     """
     Creates new token for project
     """
-    # TODO(#13): verify user's auth and perms to create tokens (projectOwner/admin)
+
+    # Check if user is an admin
+    team_id = fetch_team_id_given_project_id(project_id)
+
+    perms = fetch_team_token_for_username_and_team(username, team_id)
+
+    if not perms or not perms.admin:
+        raise ValueError("Not allowed to create token")
+
     # Create token
     project_token = token_hex(32)
 
@@ -68,11 +78,19 @@ def create_project_token(username: str, project_id: str, permission: Union[PERMI
     return project_token
 
 
-def revoke_project_token(project_id: str, project_token: str) -> None:
+def revoke_project_token(username: str, project_id: str, project_token: str) -> None:
     """
     Removes the project-token pair from a user.
     """
-    # TODO(#13): Verify user's auth and perms to remove tokens (projectOwner/admin)
+
+    # Check if user is an admin
+    team_id = fetch_team_id_given_project_id(project_id)
+
+    perms = fetch_team_token_for_username_and_team(username, team_id)
+
+    if not perms or not perms.admin:
+        raise ValueError("Not allowed to create token")
+
     try:
         conn = get_db_connection()
         with conn:
@@ -106,6 +124,7 @@ def get_token_in_projects(project_token: str) -> ProjectToken:
                     pid, read, write = row
                     return ProjectToken(token=project_token,
                                         projectId=pid,
+                                        projectName='',
                                         permission=parse_permission_flags(read, write))
     except Exception as e:
         raise RuntimeError(f"Failed to retrieve token for token {project_token}: {e}")
@@ -125,3 +144,91 @@ def has_write_access(project_id: str, project_token: str) -> bool:
     token = get_token_in_projects(project_token)
     return token.permission in [PERMISSION.WRITE.value, PERMISSION.RW.value] and token.projectId == project_id
 
+
+def fetch_team_id_given_project_id(project_id: str) -> str | None:
+    conn = get_db_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT team_id
+            FROM projects
+            WHERE id = %s""", (project_id,))
+
+            row = cur.fetchone()
+            if row:
+                return row[0]
+            else:
+                return None
+
+
+def get_accessible_projects_for_user_id(user_id: str) -> list[ProjectToken]:
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT p.name, p.id, p.description, pt.read, pt.write
+            FROM projects p
+            JOIN project_tokens pt ON pt.projectId = p.id
+            WHERE pt.userId = %s""", (user_id,))
+
+            rows = cur.fetchall()
+            if rows:
+                out = []
+                for row in rows:
+                    name, pid, desc, read, write = row
+                    out.append(ProjectToken(token='', projectId=pid, projectName=name, permission=parse_permission_flags(read, write)))
+
+                return out
+            else:
+                return []
+
+
+def get_project_tokens_for_team_id(team_id: str) -> list[ProjectToken]:
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT pt.token, p.name, p.id, pt.read, pt.write
+            FROM projects p 
+            JOIN project_tokens pt ON pt.projectId = p.id
+            WHERE p.team_id = %s""", (team_id,))
+
+            rows = cur.fetchall()
+            if rows:
+                out = []
+                for row in rows:
+                    token, name, pid, read, write = row
+                    out.append(ProjectToken(token=token,
+                                            projectId=pid,
+                                            projectName=name,
+                                            permission=parse_permission_flags(read, write)))
+                return out
+            else:
+                return []
+
+
+def get_all_project_tokens(username: str) -> dict[str, list[ProjectToken]]:
+    out = {}
+    # Get all team IDs
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT id, name
+            FROM teams
+            WHERE TRUE""")
+
+            rows = cur.fetchall()
+            if rows:
+                for row in rows:
+                    # Check for admin-ness everytime
+                    if fetch_team_token_for_username_and_team(username, row[0]).admin:
+                        team_id, name = row
+
+                        res = get_project_tokens_for_team_id(team_id)
+                        out.update({name: res})
+
+                return out
+            else:
+                return {}
