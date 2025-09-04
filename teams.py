@@ -64,7 +64,7 @@ def get_teams_for_user(user_id: int) -> list[dict]:
                 out = []
                 for row in rows:
                     team_id, name, desc = row
-                    out.append({"ID": team_id,
+                    out.append({"id": team_id,
                                 "name": name,
                                 "description": desc,
                                 "userIds": get_users_ids_for_team(team_id)})
@@ -92,7 +92,7 @@ def get_teams_for_project_id(project_id: str) -> list[dict]:
                 out = []
                 for row in rows:
                     team_id, name, desc = row
-                    out.append({"ID": team_id,
+                    out.append({"id": team_id,
                                 "name": name,
                                 "description": desc,
                                 "userIds": get_users_ids_for_team(team_id)})

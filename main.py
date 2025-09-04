@@ -374,7 +374,7 @@ async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> 
         for project_token in res_in:
             token_display.append({
                 "token": project_token.token,
-                "ID": project_token.projectId,
+                "id": project_token.projectId,
                 "Name": project_token.projectName,
                 "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
             })

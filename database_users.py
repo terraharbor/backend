@@ -24,7 +24,7 @@ def get_all_users() -> list[dict[str, str]]:
                 out = []
                 for row in rows:
                     uid, username, is_admin = row
-                    out.append({"ID": uid, "username": username, "isAdmin": is_admin})
+                    out.append({"id": uid, "username": username, "isAdmin": is_admin})
                 return out
             else:
                 return []
