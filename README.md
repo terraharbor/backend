@@ -157,7 +157,7 @@ curl -X GET http://localhost:8000/me \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
 
-* `POST`:`/logout/`: Logs out user
+* `POST`:`/logout`: Logs out user
 
 #### Request Example
 
@@ -166,7 +166,7 @@ curl -X POST http://localhost:8000/logout \
     -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
 
-Please note that for the moment, no organization nor project notions have been implemented.
+Please note that for the moment, no team nor project notions have been implemented.
 
 
 * `GET`:`/token/project/{project_id}`: Generates a new token, if meeting permissions
@@ -205,5 +205,24 @@ curl -X GET http://localhost:8000/state/1/43o5u234ru23482354bvcew3424543ef923rfv
 
 ```zsh
 curl -X GET http://localhost:8000/state/1/43o5u234ru23482354bvcew3424543ef923rfvd3rkdv3jcv0welrk94523fdset/canWrite \
+  -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
+
+* `GET`:`/teams/list`: Gets the teams the currently logged user has access to
+
+#### Request Example
+
+```zsh
+curl -X GET http://localhost:8000/teams/list \
+  -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
+
+
+* `GET`:`/state/list`: Gets the projects the currently logged user has access to
+
+#### Request Example
+
+```zsh
+curl -X GET http://localhost:8000/state/list \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
