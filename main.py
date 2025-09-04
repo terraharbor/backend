@@ -192,16 +192,16 @@ async def unlock_state(
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
         return Response(status_code=status.HTTP_200_OK)
-    
+
     req_info = json.loads((await request.body()).decode() or "{}")
 
     with open(lock_path, "r") as f:
         cur_info = json.loads(f.read() or "{}")
-    
+
     # if the request ID is provided and does not match the current lock ID, return error 409 Conflict
     if req_info.get("ID") and req_info["ID"] != cur_info.get("ID"):
         return Response(json.dumps(cur_info), status_code=status.HTTP_409_CONFLICT, media_type="application/json")
-    
+
     os.remove(lock_path)
     return Response(status_code=status.HTTP_200_OK)
 
