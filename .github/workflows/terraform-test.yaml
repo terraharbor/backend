@@ -1,0 +1,85 @@
+---
+name: "terraform-test"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Create random passwords for PostgreSQL and the username
+      id: secrets
+      working-directory: tests/docker-compose
+      run: |
+        echo "Generating database passwords..."
+        echo "PG_ROOT_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/\n" | cut -c1-32)" > .env.local
+        echo "TERRAHARBOR_DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/\n" | cut -c1-32)" >> .env.local
+        echo "Passwords saved to .env.local!"
+        echo "Generating test user credentials..."
+        echo "test_user_username=johndoe" >> $GITHUB_OUTPUT
+        echo "test_user_password=$(openssl rand -base64 32 | tr -d "=+/\n" | cut -c1-32)" >> $GITHUB_OUTPUT
+        echo "Test user credentials generated!"
+
+    - name: Start containers
+      working-directory: tests/docker-compose
+      run: |
+        docker compose --env-file .env --env-file .env.local up -d
+
+    - name: Wait for the backend to be healthy
+      working-directory: tests/docker-compose
+      run: |
+        echo "Waiting for the backend to be healthy..."
+        until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health | grep -q "200"; do
+          sleep 1
+        done
+        echo "Backend is up!"
+
+    - name: Create test user
+      working-directory: tests/docker-compose
+      run: |
+        echo "Creating test user..."
+        curl -X 'POST' \
+          'http://localhost:8000/register' \
+          -H 'accept: application/json' \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          -d 'username=${{ steps.secrets.outputs.test_user_username }}&password=${{ steps.secrets.outputs.test_user_password }}'
+        echo "Test user created!"
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+
+    - name: Initialize Terraform
+      working-directory: tests/terraform
+      env:
+        TF_PROJECT_NAME: some-big-project
+        TF_STATE_NAME: default
+      run: |
+        terraform init \
+          -backend-config="address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
+          -backend-config="lock_address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
+          -backend-config="unlock_address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
+          -backend-config="username=${{ steps.secrets.outputs.test_user_username }}" \
+          -backend-config="password=${{ steps.secrets.outputs.test_user_password }}" \
+          -backend-config="lock_method=LOCK" \
+          -backend-config="unlock_method=UNLOCK" \
+          -backend-config="retry_wait_min=5"
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    # Will fail the build if not
+    - name: Check Terraform Formatting
+      working-directory: tests/terraform
+      run: terraform fmt -check
+
+    - name: Run Terraform Apply
+      working-directory: tests/terraform
+      run: terraform apply -auto-approve
