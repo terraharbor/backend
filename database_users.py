@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Response
+from fastapi import HTTPException
 
 from auth_functions import get_db_connection
 
