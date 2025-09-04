@@ -1,3 +1,4 @@
+from tabnanny import check
 from typing import Annotated
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -9,8 +10,10 @@ import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from lock_helpers import check_lock_id
+from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
-DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
+
 
 app = FastAPI(title="TerraHarbor")
 
@@ -28,16 +31,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 basic_auth = HTTPBasic()
 logger = logging.getLogger(__name__)
 
-def _state_dir(project: str, state_name: str) -> str:
-    path = os.path.join(DATA_DIR, project, state_name)
-    os.makedirs(path, exist_ok=True)
-    return path
 
-def _latest_state_path(project: str, state_name: str) -> str:
-    return os.path.join(_state_dir(project, state_name), "latest.tfstate")
-
-def _versioned_state_path(project: str, state_name: str, version: int) -> str:
-    return os.path.join(_state_dir(project, state_name), f"{version}.tfstate")
 
 @app.get("/health")
 async def health() -> dict:
@@ -140,20 +134,24 @@ async def put_state(
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)],
-    version: int = None
+    ID: str = None
 ) -> Response:
+    logger.info(f"PUT state called for project={project} state_name={state_name} user={user.username} ID={ID}")
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
     # Get the version from the query parameter or the JSON body
-    if version is None:
-        try:
-            json_body = json.loads(body)
-            version = json_body.get("version")
-        except Exception:
+
+    try:
+        json_body = json.loads(body)
+        version = json_body.get("version")
+    except Exception:
             pass
     if version is None:
         raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
+    if ID:
+        if not check_lock_id(project, state_name, ID):
+            raise HTTPException(status_code=409, detail="State is locked with a different ID")
     version_path = _versioned_state_path(project, state_name, version)
     latest_path = _latest_state_path(project, state_name)
     with open(version_path, "wb") as f:
