@@ -35,14 +35,14 @@ def decode_token(token: str) -> User | None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl
+                    SELECT u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl, u.isAdmin
                     FROM users u
                     JOIN auth_tokens t ON u.id = t.user_id
                     WHERE t.token = %s
                 """, (token,))
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, salt, disabled, token, created_at, ttl = row
+                    username, password_hash, salt, disabled, token, created_at, ttl, is_admin = row
                     # Calculate token expiration timestamp as an integer (Unix timestamp)
                     expiration_time = int(time.mktime((created_at + ttl).timetuple()))
                     return User(
@@ -51,7 +51,8 @@ def decode_token(token: str) -> User | None:
                         disabled=disabled,
                         token=token,
                         token_validity=expiration_time,
-                        salt=salt
+                        salt=salt,
+                        is_admin=bool(int(is_admin))
                     )
     except Exception as e:
         print(f"Error decoding token: {e}")

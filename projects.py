@@ -3,6 +3,7 @@ import logging
 from auth_functions import get_db_connection, get_user_id
 from team_accesses import fetch_team_token_for_username_and_team
 from projects_tokens import get_accessible_projects_for_user_id, PERMISSION
+from teams_tokens import get_teams_ids_of_project_id
 
 logger = logging.getLogger(__name__)
 
@@ -91,3 +92,33 @@ def update_project_by_id(username: str, project_id: str, team_id: str, contents:
                 UPDATE files
                 SET file_path = %s, file_size = %s, uploaded_at = NOW()
                 WHERE project_id = %s""", (contents['file_path'], contents['file_size'], project_id,))
+
+
+def get_projects_for_user_id(user_id: str) -> list[dict]:
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                        SELECT p.name, p.id, p.description, f.uploaded_at
+                        FROM projects p
+                                 JOIN project_tokens pt ON pt.projectId = p.id
+                                 JOIN files f ON f.project_id = p.id
+                        WHERE pt.userId = %s""", (user_id,))
+
+            rows = cur.fetchall()
+            if rows:
+                out = []
+                for row in rows:
+                    name, pid, desc, timestamp = row
+                    teams_ids = get_teams_ids_of_project_id(pid)
+                    out.append({
+                        "ID": pid,
+                        "name": name,
+                        "description": desc,
+                        "timestamp": timestamp,
+                        "teamsIds": teams_ids
+                    })
+
+                return out
+            else:
+                return []

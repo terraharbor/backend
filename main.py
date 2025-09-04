@@ -5,7 +5,12 @@ from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequ
 from fastapi.responses import FileResponse
 
 from auth_functions import *
+<<<<<<< HEAD
 from fastapi_custom_dependency import get_auth_user
+=======
+from database_users import get_all_users, update_user, delete_user
+from fastapi_custom_dependancy import get_auth_user
+>>>>>>> cf42cad (feat: adapted User endpoints)
 import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +21,9 @@ from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
     get_accessible_projects_for_user_id, get_all_project_tokens
+
+from projects import get_projects_for_user_id
+from teams import get_teams_for_user
 
 app = FastAPI(title="TerraHarbor")
 
@@ -111,6 +119,47 @@ async def me(user: Annotated[User, Depends(get_auth_user)]) -> User:
     Retrieve the currently authenticated user (Bearer ou Basic).
     """
     return user
+
+
+# Users endpoints
+@app.get("/users")
+async def get_users(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    return get_all_users()
+
+
+@app.get("/users/{user_id}/projects")
+async def get_user_projects(user: Annotated[User, Depends(get_auth_user)], user_id: str) -> list[dict]:
+    return get_projects_for_user_id(user_id)
+
+
+@app.get("/users/{user_id}/teams")
+async def get_user_teams(user: Annotated[User, Depends(get_auth_user)], user_id: str) -> list[dict]:
+    return get_teams_for_user(int(user_id))
+
+
+@app.patch("/users/{user_id}")
+async def update_user_id(
+        user: Annotated[User, Depends(get_auth_user)],
+        user_id: str,
+        request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return update_user(int(user_id), data_dict['username'], data_dict['isAdmin'])
+    else:
+        return {"ERROR": "Must be admin to update user"}
+
+
+@app.delete("/users/{user_id}")
+async def delete_user_by_id(
+        user: Annotated[User, Depends(get_auth_user)],
+        user_id: str) -> dict:
+    if user.is_admin:
+        return delete_user(int(user_id))
+    else:
+        return {"ERROR": "Must be admin to remove user"}
 
 
 # GET  /state/{project}/{state_name}
