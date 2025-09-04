@@ -1,4 +1,10 @@
 .idea
 venv
 .env
+!tests/docker-compose/.env
 __pycache__/*
+**/.env.local
+**/.terraform
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.backup

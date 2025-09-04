@@ -1,0 +1,61 @@
+name: ${PROJECT_NAME}
+
+networks:
+  internal:
+    driver: bridge
+
+services:
+  database:
+    image: 'postgres:17.6'
+    hostname: 'database.internal'
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Zurich
+      - POSTGRES_PASSWORD=${PG_ROOT_PASSWORD}
+      - POSTGRES_DB=${TERRAHARBOR_DB_NAME}
+      - TERRAHARBOR_DB_NAME=${TERRAHARBOR_DB_NAME}
+      - TERRAHARBOR_DB_USER=${TERRAHARBOR_DB_USER}
+      - TERRAHARBOR_DB_PASSWORD=${TERRAHARBOR_DB_PASSWORD}
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data:rw # This path will change for versions >= 18. Check official documentation of the Docker image.
+      - ../../database/db-init.sh:/docker-entrypoint-initdb.d/db-init.sh:ro
+      - ../../database/db-init-scripts:/db-init-scripts:ro
+    networks:
+      - internal
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - TZ=Europe/Zurich
+      - POSTGRES_HOST=database.internal
+      - POSTGRES_DB=${TERRAHARBOR_DB_NAME}
+      - POSTGRES_USER=${TERRAHARBOR_DB_USER}
+      - POSTGRES_PASSWORD=${TERRAHARBOR_DB_PASSWORD}
+    ports:
+      - 8000:8000
+    volumes:
+      - tf-states:/data:rw
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  db-data:
+  tf-states:
