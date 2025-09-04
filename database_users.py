@@ -34,7 +34,7 @@ def update_user(user_id: int, username: str, is_admin: str) -> dict:
         with conn.cursor() as cur:
             cur.execute("""
             UPDATE users
-            SET username = %s, isAdmin = %s
+            SET username = %s, isAdmin = B'%s'
             WHERE id = %s""", (username, is_admin, user_id))
 
             return {"OK": "updated successfully the user"}
