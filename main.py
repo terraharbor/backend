@@ -1,5 +1,7 @@
 from tabnanny import check
 from typing import Annotated
+
+import uvicorn
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
@@ -432,7 +434,3 @@ async def create_new_project(user: Annotated[User, Depends(get_auth_user)], requ
     else:
         return {"ERROR": "Must be admin to create project"}
 
-
-
-if __name__=='__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8000)
