@@ -5,7 +5,7 @@ from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequ
 from fastapi.responses import FileResponse
 
 from auth_functions import *
-from fastapi_custom_dependancy import get_auth_user
+from fastapi_custom_dependency import get_auth_user
 import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
