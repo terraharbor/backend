@@ -13,7 +13,7 @@ def get_all_users() -> list[dict[str, str]]:
             cur.execute("""
             SELECT u.id, u.username, u.isAdmin
             FROM users u
-            JOIN team_tokens tt ON tt.userId = u.id
+            LEFT JOIN team_tokens tt ON tt.userId = u.id
             WHERE TRUE""")
 
             rows = cur.fetchall()
