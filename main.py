@@ -13,7 +13,7 @@ import logging
 from lock_helpers import check_lock_id
 from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
-
+from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access
 
 app = FastAPI(title="TerraHarbor")
 
@@ -239,3 +239,43 @@ async def delete_state(
             logger.info(f"Deleting state file: {file}")
             os.remove(os.path.join(state_dir, file))
     return Response(status_code=status.HTTP_200_OK)
+
+
+
+# Project token endpoints
+@app.get("/token/project/{project_id}")
+async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, permissions: int) -> dict:
+    try:
+        project_token = create_project_token(user.username, project_id, permissions)
+    except Exception as e:
+        logger.error(f"Failed to create project token: {e}")
+        raise HTTPException(status_code=403, detail="Failed to create project token")
+
+    return {"project_token": project_token}
+
+
+@app.delete("/token/project/{project_id}/{project_token}", response_class=Response)
+async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    try:
+        revoke_project_token(project_id, project_token)
+    except Exception as e:
+        logger.error(f"Failed to revoke project token: {e}")
+        raise HTTPException(status_code=403, detail="Failed to revoke project token")
+
+    return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/state/{project_id}/{project_token}/canRead", response_class=Response)
+async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    if not has_read_access(project_id, project_token):
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/state/{project_id}/{project_token}/canWrite", response_class=Response)
+async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    if not has_write_access(project_id, project_token):
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        return Response(status_code=status.HTTP_200_OK)

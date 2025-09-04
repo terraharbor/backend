@@ -107,6 +107,27 @@ def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials 
         raise HTTPException(status_code=401, detail="Invalid Basic Auth credentials")
     raise HTTPException(status_code=401, detail="No authentication provided")
 
+def get_user_id(username: str) -> str | None:
+    """
+    Retrieve the user's ID from DB
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                row = cur.fetchone()
+                if row:
+                    return row[0]
+    except Exception as e:
+        return None
+    finally:
+        try:
+            conn.close()
+        except:
+            logger.error("Error closing database connection")
+    return None
+
 def get_current_user(token = None, credentials = None) -> User | str:
     """
     Retrieve the currently authenticated user from the request context.
