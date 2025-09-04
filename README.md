@@ -17,7 +17,7 @@
   - [Unit Tests](#unit-tests)
     - [Add a unit test](#add-a-unit-test)
 - [Endpoints](#endpoints)
-  - [Not Authenticated endpoimts](#not-authenticated-endpoimts)
+  - [Unauthenticated Endpoints](#unauthenticated-endpoints)
     - [Request example](#request-example)
     - [Request example](#request-example-1)
   - [Authenticated Endpoints](#authenticated-endpoints)
@@ -132,7 +132,7 @@ There are currently several basic endpoints:
 
 > doc format: `METHOD`:`ENDPOINT`
 
-### Not Authenticated endpoimts
+### Unauthenticated Endpoints
 
 * `POST`:`/register`: registers a user thanks to a username and a password. Returns the creds for debug reasons for the moment.
 
