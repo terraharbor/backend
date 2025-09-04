@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from auth_functions import get_db_connection, get_user_id
 from team_accesses import fetch_team_token_for_username_and_team
+from teams_tokens import get_teams_ids_of_project_id
 
 logger = logging.getLogger(__name__)
 
@@ -152,8 +153,8 @@ def fetch_team_id_given_project_id(project_id: str) -> str | None:
         with conn.cursor() as cur:
             cur.execute("""
             SELECT team_id
-            FROM projects
-            WHERE id = %s""", (project_id,))
+            FROM project_teams
+            WHERE project_id = %s""", (project_id,))
 
             row = cur.fetchone()
             if row:
@@ -188,6 +189,7 @@ def get_project_tokens_for_team_id(team_id: str) -> list[ProjectToken]:
     conn = get_db_connection()
     with conn:
         with conn.cursor() as cur:
+        # todo: fixme
             cur.execute("""
             SELECT pt.token, p.name, p.id, pt.read, pt.write
             FROM projects p 
