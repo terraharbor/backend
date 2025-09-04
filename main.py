@@ -255,7 +255,7 @@ async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
 
 
 @app.delete("/token/project/{project_id}/{project_token}", response_class=Response)
-async def delete_proj_token(project_id: str, project_token: str) -> Response:
+async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
     try:
         revoke_project_token(project_id, project_token)
     except Exception as e:
@@ -266,7 +266,7 @@ async def delete_proj_token(project_id: str, project_token: str) -> Response:
 
 
 @app.get("/state/{project_id}/{project_token}/canRead", response_class=Response)
-async def has_read_rights(project_id: str, project_token: str) -> Response:
+async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
     if not has_read_access(project_id, project_token):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     else:
@@ -274,7 +274,7 @@ async def has_read_rights(project_id: str, project_token: str) -> Response:
 
 
 @app.get("/state/{project_id}/{project_token}/canWrite", response_class=Response)
-async def has_read_rights(project_id: str, project_token: str) -> Response:
+async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
     if not has_write_access(project_id, project_token):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     else:
