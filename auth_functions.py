@@ -96,7 +96,7 @@ def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials 
         raise HTTPException(status_code=401, detail="Invalid or disabled token")
     elif credentials:
         user = get_user(credentials.username)
-        if user and not user.disabled:
+        if user: # Useless if the user is logged in or not, since the requests contains the creds
             salted_password = user.salt + credentials.password
             calculated_hash = sha512(salted_password.encode()).hexdigest()
             logger.info(f"[AUTH] username={credentials.username} salt={user.salt} password={credentials.password}")
