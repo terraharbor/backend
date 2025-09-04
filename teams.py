@@ -47,6 +47,29 @@ def delete_team(deleter_name: str, team_id: str) -> None:
         logger.error("You are not allowed to delete team.")
 
 
+def get_team_for_team_id(team_id: int) -> dict:
+    conn = get_db_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                        SELECT o.name, o.description
+                        FROM teams o
+                        WHERE id = %s
+                        """, (team_id,))
+
+            row = cur.fetchone()
+            if row:
+                name, desc = row
+                return {"ID": team_id,
+                        "name": name,
+                        "description": desc,
+                        "userIds": get_users_ids_for_team(team_id)}
+            else:
+                logger.error(f"Error when fetching team ID {team_id}")
+                return {"Error": "notFound"}
+
+
 def get_teams_for_user(user_id: int) -> list[dict]:
     conn = get_db_connection()
 
@@ -132,3 +155,30 @@ def update_team_by_id(updater_name: str, team_id: str, contents: dict) -> None:
                 UPDATE teams
                 SET name = %s, description = %s
                 WHERE id = %s""", (contents['name'], contents['description'], team_id))
+
+
+def get_all_teams() -> list[dict]:
+    conn = get_db_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                        SELECT o.id, o.name, o.description
+                        FROM teams o
+                        WHERE TRUE
+                        """)
+
+            rows = cur.fetchall()
+            if rows:
+                out = []
+                for row in rows:
+                    team_id, name, desc = row
+                    out.append({"ID": team_id,
+                                "name": name,
+                                "description": desc,
+                                "userIds": get_users_ids_for_team(team_id)})
+
+                return out
+            else:
+                logger.error("Error when fetching all teams")
+                return [{"Error": "notFound"}]

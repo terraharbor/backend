@@ -22,7 +22,7 @@ from projects_tokens import create_project_token, revoke_project_token, has_read
 
 from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
     delete_project, create_project
-from teams import get_teams_for_user, get_teams_for_project_id
+from teams import get_teams_for_user, get_teams_for_project_id, get_all_teams, get_team_for_team_id
 
 app = FastAPI(title="TerraHarbor")
 
@@ -430,3 +430,29 @@ async def create_new_project(user: Annotated[User, Depends(get_auth_user)], requ
     else:
         return {"ERROR": "Must be admin to create project"}
 
+@app.get("/teams")
+async def get_teams(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    return get_all_teams()
+
+@app.get("/teams/{team_id}")
+async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+    return get_team_for_team_id(int(team_id))
+
+@app.get("/teams/{team_id}/users")
+async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+
+
+@app.get("/teams/{team_id}/projects}")
+async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+
+
+@app.patch("/teams/{team_id}")
+async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str, request: Request) -> dict:
+
+
+@app.delete("/teams/{team_id}")
+async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+
+
+@app.post("/teams")
+async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
