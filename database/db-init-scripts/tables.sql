@@ -8,25 +8,46 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS auth_tokens (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
+    user_id INTEGER UNIQUE REFERENCES users(id),
     token VARCHAR(255) NOT NULL,
     ttl INTERVAL NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS organisations (
+CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS team_tokens (
+    token VARCHAR(255) PRIMARY KEY,
+    teamId SERIAL NOT NULL REFERENCES teams(id),
+    userId SERIAL NOT NULL REFERENCES users(id),
+    administrator BIT NOT NULL,
+
+    can_add_proj BIT NOT NULL,
+    can_del_proj BIT NOT NULL,
+
+    can_add_token BIT NOT NULL,
+    can_del_token BIT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS projects (
     id SERIAL PRIMARY KEY,
-    organisation_id INTEGER NOT NULL REFERENCES organisations(id),
+    team_id INTEGER NOT NULL REFERENCES teams(id),
     name VARCHAR(100) NOT NULL,
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS project_tokens (
+    token VARCHAR(255) PRIMARY KEY,
+    projectId SERIAL NOT NULL REFERENCES projects(id),
+    userId SERIAL NOT NULL REFERENCES users(id),
+    read BIT NOT NULL,
+    write BIT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS files (
