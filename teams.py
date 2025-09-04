@@ -47,10 +47,9 @@ def delete_team(deleter_name: str, team_id: str) -> None:
         logger.error("You are not allowed to delete team.")
 
 
-def get_teams_for_user(username: str) -> list[dict]:
+def get_teams_for_user(user_id: int) -> list[dict]:
     conn = get_db_connection()
 
-    user_id = get_user_id(username)
     with conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -65,12 +64,33 @@ def get_teams_for_user(username: str) -> list[dict]:
                 out = []
                 for row in rows:
                     team_id, name, desc = row
-                    out.append({"id": team_id, "name": name, "description": desc})
+                    out.append({"ID": team_id,
+                                "name": name,
+                                "description": desc,
+                                "userIds": get_users_ids_for_team(team_id)})
 
                 return out
             else:
-                logger.error(f"Error when fetching teams for user {username}")
+                logger.error(f"Error when fetching teams for user ID {user_id}")
                 return [{"Error": "notFound"}]
+
+
+def get_users_ids_for_team(team_id: int) -> list[int]:
+    conn = get_db_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT tt.userId
+            FROM team_tokens tt
+            JOIN teams t ON t.id = tt.teamid
+            WHERE t.id = %s""", (team_id,))
+
+            rows = cur.fetchall()
+            if rows:
+                return [row[0] for row in rows]
+            else:
+                return []
 
 
 def update_team_by_id(updater_name: str, team_id: str, contents: dict) -> None:
