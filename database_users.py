@@ -29,8 +29,8 @@ def get_all_users() -> list[dict[str, str]]:
             else:
                 return []
 
-def update_user(user_id: int, username: str, is_admin: str) -> dict:
-    if is_admin not in ['1', '0', 1, 0]:
+def update_user(user_id: int, username: str, is_admin: bool) -> dict:
+    if not isinstance(is_admin, bool):
         return Response(status_code=400, details="IsAdmin flag not in valid values set")
     conn = get_db_connection()
 
@@ -38,7 +38,7 @@ def update_user(user_id: int, username: str, is_admin: str) -> dict:
         with conn.cursor() as cur:
             cur.execute("""
             UPDATE users
-            SET username = %s, isAdmin = B'%s'
+            SET username = %s, isAdmin = %s
             WHERE id = %s""", (username, is_admin, user_id))
 
             return {"OK": "updated successfully the user"}
