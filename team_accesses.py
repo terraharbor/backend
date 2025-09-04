@@ -58,16 +58,17 @@ def fetch_team_token_for_username_and_team(username: str, team_id: str) -> UserP
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                SELECT administrator, can_add_proj, can_del_proj, can_add_token, can_del_token
-                FROM team_tokens
+                SELECT tt.administrator, tt.can_add_proj, tt.can_del_proj, tt.can_add_token, tt.can_del_token, t.name
+                FROM team_tokens tt
+                JOIN teams t ON t.id = tt.teamId
                 WHERE userId = %s
                 AND teamId = %s""", (user_id, team_id))
                 row = cur.fetchone()
                 if row:
-                    admin, can_add_proj, can_del_proj, can_add_token, can_del_token = row
+                    admin, can_add_proj, can_del_proj, can_add_token, can_del_token, name = row
                     return UserPermissions(
                         username=username,
-                        team=team_id,
+                        team=name,
                         admin=bool(int(admin)),
                         can_add_proj=bool(int(can_add_proj)),
                         can_del_proj=bool(int(can_del_proj)),

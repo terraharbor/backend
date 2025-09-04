@@ -182,3 +182,53 @@ def get_accessible_projects_for_user_id(user_id: str) -> list[ProjectToken]:
                 return out
             else:
                 return []
+
+
+def get_project_tokens_for_team_id(team_id: str) -> list[ProjectToken]:
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT pt.token, p.name, p.id, pt.read, pt.write
+            FROM projects p 
+            JOIN project_tokens pt ON pt.projectId = p.id
+            WHERE p.team_id = %s""", (team_id,))
+
+            rows = cur.fetchall()
+            if rows:
+                out = []
+                for row in rows:
+                    token, name, pid, read, write = row
+                    out.append(ProjectToken(token=token,
+                                            projectId=pid,
+                                            projectName=name,
+                                            permission=parse_permission_flags(read, write)))
+                return out
+            else:
+                return []
+
+
+def get_all_project_tokens(username: str) -> dict[str, list[ProjectToken]]:
+    out = {}
+    # Get all team IDs
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT id, name
+            FROM teams
+            WHERE TRUE""")
+
+            rows = cur.fetchall()
+            if rows:
+                for row in rows:
+                    # Check for admin-ness everytime
+                    if fetch_team_token_for_username_and_team(username, row[0]).admin:
+                        team_id, name = row
+
+                        res = get_project_tokens_for_team_id(team_id)
+                        out.update({name: res})
+
+                return out
+            else:
+                return {}
