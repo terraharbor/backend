@@ -213,7 +213,7 @@ async def get_states(
     ]
     result = []
     for version in versions:
-        meta_path = os.path.join(path, f"{version}.tfstate.meta")
+        meta_path = _versioned_state_info_path(project_id, state_name, version)
         if os.path.exists(meta_path):
             with open(meta_path, "r") as meta_file:
                 try:
@@ -289,10 +289,17 @@ async def put_state(
             raise HTTPException(status_code=409, detail="State is locked with a different ID")
     version_path = _versioned_state_path(project_id, state_name, serial)
     latest_path = _latest_state_path(project_id, state_name)
+    versionned_info_path = _versioned_state_info_path(project_id, state_name, serial)
     with open(version_path, "wb") as f:
         f.write(body)
     with open(latest_path, "wb") as f:
         f.write(body)
+    with open(versionned_info_path, "w") as f:
+        info = {
+            "uploaded_by": user.username,
+            "timestamp": datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        }
+        f.write(json.dumps(info))
 
     # Write path to DB
     file_id = write_state_path_to_db(latest_path, project_id)
