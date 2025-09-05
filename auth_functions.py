@@ -92,20 +92,20 @@ def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials 
     Retrieve the authenticated user based on the provided token or credentials.
     """
 
-    logger.info(f"token: {token}")
-    logger.info(f"credentials: {credentials}")
+    
+    
     if token:
+        logger.info(f"Bearer Token Received")
         user = decode_token(token)
         if user and not user.disabled:
             return user
         raise HTTPException(status_code=401, detail="Invalid or disabled token")
     elif credentials:
+        logger.info(f"Credentials Received")
         user = get_user(credentials.username)
         if user: # Useless if the user is logged in or not, since the requests contains the creds
             salted_password = user.salt + credentials.password
             calculated_hash = sha512(salted_password.encode()).hexdigest()
-            logger.info(f"[AUTH] username={credentials.username} salt={user.salt} password={credentials.password}")
-            logger.info(f"[AUTH] expected_hash={user.sha512_hash} calculated_hash={calculated_hash}")
             if user.sha512_hash == calculated_hash:
                 return user
         logger.warning(f"[AUTH] Basic Auth failed for user {credentials.username}")
@@ -324,7 +324,7 @@ def is_bearer_token_valid(token: str) -> bool:
                 else:
                     # Out you go, keep the auth_tokens table coherent
                     disable_user(username, token)
-                logger.info(f"Checked token {token}: valid={valid}")
+                logger.info(f"Checked token for user {username}. valid={valid}")
                 return valid
     except Exception as e:
         logger.error(f"Error validating token: {e}")
