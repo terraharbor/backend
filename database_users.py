@@ -35,14 +35,17 @@ def update_user(user_id: int, username: str, is_admin: bool) -> dict:
         raise HTTPException(status_code=400, detail="IsAdmin flag not in valid values set")
     conn = get_db_connection()
 
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-            UPDATE users
-            SET username = %s, isAdmin = %s
-            WHERE id = %s""", (username, is_admin, user_id))
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                UPDATE users
+                SET username = %s, isAdmin = %s
+                WHERE id = %s""", (username, is_admin, user_id))
 
-            return {"OK": "updated successfully the user"}
+                return {"OK": "updated successfully the user"}
+    except:
+        raise HTTPException(status_code=404, detail="User not found")
 
 
 def delete_user(user_id: int) -> dict:
