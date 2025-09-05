@@ -52,7 +52,7 @@ def decode_token(token: str) -> User | None:
                         token=token,
                         token_validity=expiration_time,
                         salt=salt,
-                        is_admin=is_admin
+                        isAdmin=is_admin
                     )
     except Exception as e:
         print(f"Error decoding token: {e}")
@@ -76,7 +76,7 @@ def get_user(username: str) -> User | None:
                 row = cur.fetchone()
                 if row:
                     username, password_hash, salt, disabled, isadmin = row
-                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt, is_admin = isadmin)
+                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt, isAdmin=isadmin)
     except Exception as e:
         logger.error(f"Error retrieving user '{username}': {e}")
         return None

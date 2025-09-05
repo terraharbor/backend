@@ -1,4 +1,7 @@
 import logging
+from http import HTTPStatus
+
+from fastapi import HTTPException
 
 from auth_functions import get_db_connection
 from teams_tokens import get_teams_ids_of_project_id
@@ -41,19 +44,36 @@ def get_project_for_project_id(project_id: str) -> list[dict]:
             if rows:
                 return generate_project_entities(rows)
             else:
-                return []
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Project not found")
 
 
 def update_project(project_id: int, name: str, desc: str) -> dict:
     conn = get_db_connection()
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-            UPDATE projects 
-            SET name = %s, description = %s 
-            WHERE id = %s""", (name, desc, project_id))
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                UPDATE projects 
+                SET name = %s, description = %s 
+                WHERE id = %s""", (name, desc, project_id))
 
-            return {"OK": "Project updated successfully"}
+                cur.execute("""
+                SELECT created_at
+                FROM projects
+                WHERE id = %s""", (project_id,))
+
+                row = cur.fetchone()
+
+                return {
+                    "id": project_id,
+                    "name": name,
+                    "description": desc,
+                    "timestamp": row[0],
+                    "teamsIds": get_teams_ids_of_project_id(str(project_id))
+                }
+    except Exception as ex:
+        logger.error(f"Exception while updating project: {ex}")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User to update not found")
 
 
 def get_projects_for_user_id(user_id: str) -> list[dict]:

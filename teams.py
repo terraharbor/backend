@@ -52,7 +52,7 @@ def get_team_for_team_id(team_id: int) -> dict:
                         "userIds": get_users_ids_for_team(team_id)}
             else:
                 logger.error(f"Error when fetching team ID {team_id}")
-                return Response(status_code=HTTPStatus.FORBIDDEN, content="Team not found by ID")
+                return Response(status_code=HTTPStatus.NOT_FOUND, content="Team not found by ID")
 
 
 def get_teams_for_user(user_id: int) -> list[dict]:
@@ -141,7 +141,10 @@ def update_team_by_team_id(team_id: int, name: str, description: str) -> dict:
             SET name = %s, description = %s
             WHERE id = %s""", (name, description, team_id))
 
-            return {"OK": "Team updated successfully"}
+            return {"id": team_id,
+                    "name": name,
+                    "description": description,
+                    "userIds": get_users_ids_for_team(team_id)}
 
 
 def get_all_teams() -> list[dict]:
@@ -167,8 +170,7 @@ def get_all_teams() -> list[dict]:
 
                 return out
             else:
-                logger.error("Error when fetching all teams")
-                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Teams not found")
+                return []
 
 
 def get_users_for_team_id(team_id: int) -> list[dict]:
