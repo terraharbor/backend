@@ -141,7 +141,10 @@ def update_team_by_team_id(team_id: int, name: str, description: str) -> dict:
             SET name = %s, description = %s
             WHERE id = %s""", (name, description, team_id))
 
-            return {"OK": "Team updated successfully"}
+            return {"id": team_id,
+                    "name": name,
+                    "description": description,
+                    "userIds": get_users_ids_for_team(team_id)}
 
 
 def get_all_teams() -> list[dict]:

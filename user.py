@@ -8,4 +8,4 @@ class User(BaseModel):
     salt: str
     token: Optional[str] = None
     token_validity: Optional[int] = None
-    is_admin: Optional[bool] = None
+    isAdmin: Optional[bool] = None

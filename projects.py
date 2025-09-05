@@ -53,7 +53,20 @@ def update_project(project_id: int, name: str, desc: str) -> dict:
             SET name = %s, description = %s 
             WHERE id = %s""", (name, desc, project_id))
 
-            return {"OK": "Project updated successfully"}
+            cur.execute("""
+            SELECT created_at
+            FROM projects
+            WHERE id = %s""", (project_id,))
+
+            row = cur.fetchone()
+
+            return {
+                "id": project_id,
+                "name": name,
+                "description": desc,
+                "timestamp": row[0],
+                "teamsIds": get_teams_ids_of_project_id(str(project_id))
+            }
 
 
 def get_projects_for_user_id(user_id: str) -> list[dict]:
