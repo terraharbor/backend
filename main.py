@@ -493,6 +493,3 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")
 
-
-if __name__ == '__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8000)
