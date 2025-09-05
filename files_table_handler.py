@@ -67,6 +67,31 @@ def get_state_from_db(file_path: str, project_id: str) -> str | None:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+def get_states_from_db_for_project_id(project_id: str) -> list[dict]:
+    conn = get_db_connection()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                            SELECT id, file_path
+                            FROM files
+                            WHERE project_id = %s""", (project_id,))
+
+                rows = cur.fetchall()
+                if rows:
+                    out = []
+                    for row in rows:
+                        sid, path = row
+                        out.append({"id": sid, "path": path})
+                    return out
+                else:
+                    logger.error(f"States not found for given project {project_id}")
+                    raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"States not found for given project {project_id}")
+    except Exception as e:
+        logger.error(f"Exception while getting state from db: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 def delete_state_from_db(file_path: str, project_id: str) -> None:
     conn = get_db_connection()
     try:

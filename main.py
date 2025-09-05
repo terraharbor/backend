@@ -15,7 +15,8 @@ from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from files_table_handler import write_state_path_to_db, get_state_from_db, delete_state_from_db
+from files_table_handler import write_state_path_to_db, get_state_from_db, delete_state_from_db, \
+    get_states_from_db_for_project_id
 from lock_helpers import check_lock_id
 from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
@@ -186,6 +187,14 @@ async def get_state(
     if not os.path.exists(state_path):
         raise HTTPException(status_code=404, detail="State not found in filesystem")
     return FileResponse(path, media_type="application/octet-stream")
+
+
+@app.get("/state/{project_id}")
+async def get_states(
+        project_id: str,
+        user: Annotated[User, Depends(get_auth_user)]
+) -> list[dict]:
+    return get_states_from_db_for_project_id(project_id)
 
 # POST /state/{project}/{state_name}
 @app.post("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
