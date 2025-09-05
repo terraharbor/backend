@@ -56,10 +56,10 @@ def delete_user(user_id: int) -> dict:
 
                 if cur.rowcount == 0:
                     return Response(status_code=HTTPStatus.NOT_FOUND,
-                                    content={"message": "user not found"})
+                                    content="user not found")
 
                 return {"OK": "Deleted user successfully"}
     except Exception as e:
         logger.error(f"Error when deleting user from users table: {e}")
         return Response(status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                        content={"message": "Error deleting user"})
+                        content="Error deleting user")
