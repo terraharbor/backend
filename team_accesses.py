@@ -4,7 +4,6 @@ from secrets import token_hex
 from pydantic import BaseModel
 
 from auth_functions import get_db_connection, get_user_id
-from teams_tokens import get_teams_ids_of_project_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +19,7 @@ class UserPermissions(BaseModel):
     can_del_token: bool
 
 
-def can_access_with_team_id(username: str, team_id: str) -> bool:
+def can_access(username: str, team_id: str) -> bool:
     """
     Checks if given user has access to given team
     """
@@ -49,21 +48,6 @@ def can_access_with_team_id(username: str, team_id: str) -> bool:
             conn.close()
         except Exception as e:
             logger.error("Failed to close database connection")
-
-def can_access_with_project_id(username: str, project_id: str) -> bool:
-    try:
-        # Fetch team IDs associated to project_id
-        team_ids = get_teams_ids_of_project_id(project_id)
-
-        # Fetch team tokens for current user
-        user_id = get_user_id(username)
-        acc_team_ids = fetch_accessible_team_ids_for_user(user_id)
-
-        return bool(set(team_ids) & set(acc_team_ids))
-    except Exception as e:
-        logger.error(e)
-        return False
-
 
 
 def fetch_team_token_for_username_and_team(username: str, team_id: str) -> UserPermissions:
@@ -139,26 +123,6 @@ def fetch_team_tokens_for_username(username: str) -> list[UserPermissions]:
             conn.close()
         except Exception as e:
             logger.error("Failed to close database connection")
-
-
-def fetch_accessible_team_ids_for_user(user_id: str) -> list[str]:
-    try:
-        conn = get_db_connection()
-        with conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                SELECT teamId
-                FROM team_tokens
-                WHERE userId = %s""", (user_id,))
-
-                rows = cur.fetchall()
-                if rows:
-                    return [row[0] for row in rows]
-                else:
-                    return []
-    except Exception as e:
-        logger.error(f"Error while fetching accessible team ids for user: {e}")
-        return []
 
 
 def add_access_for_username(user_adder: str, user_to_add: str, team_id: str) -> str:
