@@ -1,10 +1,14 @@
 import enum
 import logging
+from http import HTTPStatus
+from http.client import HTTPException
 
 from secrets import token_hex
 from typing import Union
 
 from pydantic import BaseModel
+
+from fastapi import Response, HTTPException
 
 from auth_functions import get_db_connection, get_user_id
 from team_accesses import fetch_team_token_for_username_and_team
@@ -36,28 +40,13 @@ class ProjectToken(BaseModel):
     permission: int
 
 
-def create_project_token(username: str, project_id: str, permission: Union[PERMISSION, int]) -> str:
+def create_project_token(project_id: str) -> Response:
     """
     Creates new token for project
     """
 
-    # Check if user is an admin
-    team_id = fetch_team_id_given_project_id(project_id)
-
-    perms = fetch_team_token_for_username_and_team(username, team_id)
-
-    if not perms or not perms.admin:
-        raise ValueError("Not allowed to create token")
-
     # Create token
     project_token = token_hex(32)
-
-    if permission is None:
-        raise ValueError("Permission must be specified on creation of new project token")
-
-    perm_val = permission.value if isinstance(permission, PERMISSION) else permission
-
-    user_id = get_user_id(username)
 
     try:
         conn = get_db_connection()
@@ -65,18 +54,17 @@ def create_project_token(username: str, project_id: str, permission: Union[PERMI
             with conn.cursor() as cursor:
                 cursor.execute("""
                                INSERT INTO project_tokens (token, projectId, userId, read, write) VALUES 
-                                   (%s, %s, %s, B'%s', B'%s')""", (project_token, project_id, user_id,
-                                                         1 if perm_val in [1, 3] else 0,
-                                                         1 if perm_val in [2, 3] else 0))
+                                   (%s, %s, '', B'1', B'1')""", (project_token, project_id))
+
+                return Response(status_code=HTTPStatus.CREATED, content="Token created successfully")
+
     except Exception as e:
-        raise RuntimeError(f"Failed to update project access for project ID {project_id}: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Failed to update project access for project ID {project_id}: {e}")
     finally:
         try:
             conn.close()
         except:
             logger.error("Error closing DB connection")
-
-    return project_token
 
 
 def revoke_project_token(username: str, project_id: str, project_token: str) -> None:
@@ -210,27 +198,37 @@ def get_project_tokens_for_team_id(team_id: str) -> list[ProjectToken]:
                 return []
 
 
-def get_all_project_tokens(username: str) -> dict[str, list[ProjectToken]]:
-    out = {}
-    # Get all team IDs
+def get_all_project_tokens() -> list[dict]:
+    out = []
     conn = get_db_connection()
     with conn:
         with conn.cursor() as cur:
             cur.execute("""
-            SELECT id, name
-            FROM teams
+            SELECT token, projectId
+            FROM project_tokens
             WHERE TRUE""")
 
             rows = cur.fetchall()
             if rows:
                 for row in rows:
-                    # Check for admin-ness everytime
-                    if fetch_team_token_for_username_and_team(username, row[0]).admin:
-                        team_id, name = row
+                    token, project_id = row
 
-                        res = get_project_tokens_for_team_id(team_id)
-                        out.update({name: res})
+                    out.append({"token": token, "project_id": project_id})
 
                 return out
             else:
-                return {}
+                return []
+
+def delete_project_token(token_id: str) -> dict:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                            DELETE FROM project_tokens
+                            WHERE token = %s""", (token_id,))
+
+                return Response(status_code=200, content="Deleted project token succesfully")
+    except Exception as e:
+        logger.error(f"Failed to delete project token: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to delete project token")
