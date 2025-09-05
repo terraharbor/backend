@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Create random passwords for PostgreSQL and the username
-      id: secrets
+      id: admin
       working-directory: tests/docker-compose
       run: |
         echo "Generating database passwords..."
@@ -24,7 +24,7 @@ jobs:
         echo "TERRAHARBOR_DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/\n" | cut -c1-32)" >> .env.local
         echo "Passwords saved to .env.local!"
         echo "Generating test user credentials..."
-        echo "test_user_username=johndoe" >> $GITHUB_OUTPUT
+        echo "test_user_username=administrator" >> $GITHUB_OUTPUT
         echo "test_user_password=$(openssl rand -base64 32 | tr -d "=+/\n" | cut -c1-32)" >> $GITHUB_OUTPUT
         echo "Test user credentials generated!"
 
@@ -42,16 +42,42 @@ jobs:
         done
         echo "Backend is up!"
 
-    - name: Create test user
+    - name: Create administrator user
       working-directory: tests/docker-compose
       run: |
-        echo "Creating test user..."
-        curl -X 'POST' \
+        echo "Creating administrator..."
+        RESPONSE=$(curl -s -X 'POST' \
           'http://localhost:8000/register' \
           -H 'accept: application/json' \
           -H 'Content-Type: application/x-www-form-urlencoded' \
-          -d 'username=${{ steps.secrets.outputs.test_user_username }}&password=${{ steps.secrets.outputs.test_user_password }}'
-        echo "Test user created!"
+          -d 'username=${{ steps.admin.outputs.test_user_username }}&password=${{ steps.admin.outputs.test_user_password }}')
+        echo "Administrator user created!"
+
+    - name: Create bearer token for administrator user
+      id: bearer_token
+      run: |
+        echo "Creating bearer token for the administrator..."
+        RESPONSE=$(curl -s -X 'POST' \
+          'http://localhost:8000/token' \
+          -H 'accept: application/json' \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          -d 'username=${{ steps.admin.outputs.test_user_username }}&password=${{ steps.admin.outputs.test_user_password }}')
+        ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r .access_token)
+        echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+        echo "Administrator's token created!"
+
+    - name: Create project to contain the state
+      id: project
+      run: |
+        echo "Creating project..."
+        RESPONSE=$(curl -s -X 'POST' \
+          'http://localhost:8000/projects' \
+          -H "Authorization: Bearer ${{ steps.bearer_token.outputs.access_token }}" \
+          -H "Content-Type: application/json" \
+          -d '{ "name": "some-big-project", "description": "This is some great project." }')
+        PROJECT_ID=$(echo "$RESPONSE" | jq -r .id)
+        echo "id=$PROJECT_ID" >> $GITHUB_OUTPUT
+        echo "Project created!"
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -61,15 +87,14 @@ jobs:
     - name: Initialize Terraform
       working-directory: tests/terraform
       env:
-        TF_PROJECT_NAME: some-big-project
-        TF_STATE_NAME: default
+        TF_STATE_NAME: main
       run: |
         terraform init \
-          -backend-config="address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
-          -backend-config="lock_address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
-          -backend-config="unlock_address=http://localhost:8000/state/$TF_PROJECT_NAME/$TF_STATE_NAME" \
-          -backend-config="username=${{ steps.secrets.outputs.test_user_username }}" \
-          -backend-config="password=${{ steps.secrets.outputs.test_user_password }}" \
+          -backend-config="address=http://localhost:8000/state/${{ steps.project.outputs.id }}/$TF_STATE_NAME" \
+          -backend-config="lock_address=http://localhost:8000/state/${{ steps.project.outputs.id }}/$TF_STATE_NAME" \
+          -backend-config="unlock_address=http://localhost:8000/state/${{ steps.project.outputs.id }}/$TF_STATE_NAME" \
+          -backend-config="username=${{ steps.admin.outputs.test_user_username }}" \
+          -backend-config="password=${{ steps.admin.outputs.test_user_password }}" \
           -backend-config="lock_method=LOCK" \
           -backend-config="unlock_method=UNLOCK" \
           -backend-config="retry_wait_min=5"
