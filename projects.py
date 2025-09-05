@@ -16,7 +16,23 @@ def create_project(project_name: str, desc: str) -> dict:
                         INSERT INTO projects (name, description) VALUES (%s, %s)
                         """, (project_name, desc))
 
-            return {"OK": "Project created successfully"}
+            cur.execute("""
+            SELECT id, updated_at
+            FROM projects
+            WHERE name = %s AND description = %s""", (project_name, desc))
+
+            row = cur.fetchone()
+            if row:
+                pid, timestamp = row
+                return {
+                    "id": pid,
+                    "name": project_name,
+                    "description": desc,
+                    "lastUpdated": timestamp,
+                    "teamIds": get_teams_ids_of_project_id(pid)
+                }
+            else:
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Project not found in DB after creation")
 
 
 def delete_project(project_id: int) -> dict:
