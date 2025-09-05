@@ -147,6 +147,9 @@ async def update_user_id(
 
     data_dict = json.loads(body)
 
+    if data_dict.get('username') is None or data_dict.get('isAdmin') is None:
+        raise HTTPException(status_code=400, detail="Incomplete form data")
+
     if user.isAdmin:
         return update_user(int(user_id), data_dict['username'], data_dict['isAdmin'])
     else:
@@ -408,6 +411,9 @@ async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
 
     data_dict = json.loads(body)
 
+    if data_dict.get('name') is None or data_dict.get('description') is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete form data")
+
     if user.isAdmin:
         return update_project(int(project_id), data_dict['name'], data_dict['description'])
     else:
@@ -427,6 +433,9 @@ async def create_new_project(user: Annotated[User, Depends(get_auth_user)], requ
         body = (await request.body()).decode() or "{}"
 
         data_dict = json.loads(body)
+
+        if data_dict.get('name') is None or data_dict.get('description') is None:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
         return create_project(data_dict["name"], data_dict["description"])
     else:
@@ -454,6 +463,9 @@ async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
 
     data_dict = json.loads(body)
 
+    if data_dict.get('name') is None or data_dict.get('description') is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
+
     if user.isAdmin:
         return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
     else:
@@ -472,6 +484,9 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
     body = (await request.body()).decode() or "{}"
 
     data_dict = json.loads(body)
+
+    if data_dict.get('name') is None or data_dict.get('description') is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
         return create_team(data_dict['name'], data_dict['description'])
