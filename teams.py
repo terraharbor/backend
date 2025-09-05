@@ -86,29 +86,32 @@ def get_teams_for_user(user_id: int) -> list[dict]:
 def get_teams_for_project_id(project_id: str) -> list[dict]:
     conn = get_db_connection()
 
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                        SELECT o.id, o.name, o.description
-                        FROM teams o
-                                 JOIN project_teams pt ON o.id = pt.team_id
-                        WHERE pt.project_id = %s
-                        """, (project_id,))
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                            SELECT o.id, o.name, o.description
+                            FROM teams o
+                                     JOIN project_teams pt ON o.id = pt.team_id
+                            WHERE pt.project_id = %s
+                            """, (project_id,))
 
-            rows = cur.fetchall()
-            if rows:
-                out = []
-                for row in rows:
-                    team_id, name, desc = row
-                    out.append({"id": team_id,
-                                "name": name,
-                                "description": desc,
-                                "userIds": get_users_ids_for_team(team_id)})
+                rows = cur.fetchall()
+                if rows:
+                    out = []
+                    for row in rows:
+                        team_id, name, desc = row
+                        out.append({"id": team_id,
+                                    "name": name,
+                                    "description": desc,
+                                    "userIds": get_users_ids_for_team(team_id)})
 
-                return out
-            else:
-                logger.error(f"Error when fetching teams for project ID {project_id}")
-                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team not found")
+                    return out
+                else:
+                    logger.error(f"Error when fetching teams for project ID {project_id}")
+                    raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team not found")
+    except:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team not found")
 
 
 def get_users_ids_for_team(team_id: int) -> list[int]:
@@ -203,6 +206,7 @@ def get_projects_for_team_id(team_id: int) -> list[dict]:
             SELECT p.name, p.id, p.description, f.uploaded_at
             FROM projects p
                         LEFT JOIN project_teams pt ON p.id = pt.project_id
+                        LEFT JOIN files f ON f.project_id = p.id
                     WHERE pt.team_id = %s""", (team_id,))
 
             rows = cur.fetchall()
