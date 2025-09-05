@@ -450,11 +450,11 @@ async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id:
     return get_team_for_team_id(int(team_id))
 
 @app.get("/teams/{team_id}/users")
-async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     return get_users_for_team_id(int(team_id))
 
 @app.get("/teams/{team_id}/projects}")
-async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     return get_projects_for_team_id(int(team_id))
 
 @app.patch("/teams/{team_id}")
