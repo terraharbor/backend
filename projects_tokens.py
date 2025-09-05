@@ -40,7 +40,7 @@ class ProjectToken(BaseModel):
     permission: int
 
 
-def create_project_token(project_id: str) -> Response:
+def create_project_token(project_id: str) -> dict:
     """
     Creates new token for project
     """
@@ -54,12 +54,12 @@ def create_project_token(project_id: str) -> Response:
             with conn.cursor() as cursor:
                 cursor.execute("""
                                INSERT INTO project_tokens (token, projectId, userId, read, write) VALUES 
-                                   (%s, %s, '', B'1', B'1')""", (project_token, project_id))
+                                   (%s, %s, 1, B'1', B'1')""", (project_token, project_id))
 
-                return Response(status_code=HTTPStatus.CREATED, content="Token created successfully")
+                return {"token": project_token, "project_id": project_id}
 
     except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Failed to update project access for project ID {project_id}: {e}")
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Failed to create project access for project ID {project_id}: {e}")
     finally:
         try:
             conn.close()
@@ -177,7 +177,6 @@ def get_project_tokens_for_team_id(team_id: str) -> list[ProjectToken]:
     conn = get_db_connection()
     with conn:
         with conn.cursor() as cur:
-        # todo: fixme
             cur.execute("""
             SELECT pt.token, p.name, p.id, pt.read, pt.write
             FROM projects p 
