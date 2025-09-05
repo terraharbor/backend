@@ -1,6 +1,8 @@
 import logging
 from secrets import token_hex
 
+from http import HTTPStatus
+
 from auth_functions import get_db_connection, get_user_id
 from projects import generate_project_entities
 from fastapi import Response
