@@ -19,7 +19,7 @@ import logging
 from files_table_handler import write_state_path_to_db, get_state_from_db, delete_state_from_db, \
     get_states_from_db_for_project_id
 from lock_helpers import check_lock_id
-from path_tools import _state_dir, _latest_state_path, _versioned_state_path
+from path_tools import _state_dir, _latest_state_path, _versioned_state_info_path, _versioned_state_path
 
 from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
@@ -192,6 +192,47 @@ async def get_state(
     raise HTTPException(status_code=404, detail="State not found in filesystem")
 
 
+@app.get("/states/{project}/{state_name}", tags=["auth"])
+async def get_states(
+    project: str,
+    state_name: str,
+    user: Annotated[User, Depends(get_auth_user)]
+    ) -> list:
+    """
+    Endpoint to retrieve all the existing versions of a state
+    """
+
+    path = _state_dir(project, state_name)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="State not found")
+
+    versions = [
+        f.split(".tfstate")[0]
+        for f in os.listdir(path)
+        if f.endswith(".tfstate") and f != "latest.tfstate"
+    ]
+    result = []
+    for version in versions:
+        meta_path = os.path.join(path, f"{version}.tfstate.meta")
+        if os.path.exists(meta_path):
+            with open(meta_path, "r") as meta_file:
+                meta = json.load(meta_file)
+            result.append({
+                "version": version,
+                "created by": meta.get("uploaded_by"),
+                "upload date": meta.get("timestamp")
+            })
+        else:
+            result.append({
+                "version": version,
+                "created by": None,
+                "upload date": None
+            })
+    return result
+
+
+
+
 @app.get("/state/{project_id}")
 async def get_states(
         project_id: int,
@@ -327,9 +368,12 @@ async def delete_state(
     logger.info(f"State asked to delete: {state_dir}")
     if version is not None:
         path = _versioned_state_path(project_id, state_name, version)
+        meta_path = _versioned_state_info_path(project_id, state_name, version)
         if os.path.exists(path):
             logger.info(f"Deleting state version: {path}")
             os.remove(path)
+            if os.path.exists(meta_path):
+                os.remove(meta_path)
             # If the latest version is deleted, update latest.tfstate
             versions = [int(f.split('.tfstate')[0]) for f in os.listdir(state_dir) if f.endswith('.tfstate') and f != 'latest.tfstate']
             if versions:

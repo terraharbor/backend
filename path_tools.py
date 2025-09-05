@@ -13,3 +13,6 @@ def _latest_state_path(project: str, state_name: str) -> str:
 
 def _versioned_state_path(project: str, state_name: str, version: int) -> str:
     return os.path.join(_state_dir(project, state_name), f"{version}.tfstate")
+
+def _versioned_state_info_path(project: str, state_name: str, version: int) -> str:
+    return os.path.join(_state_dir(project, state_name), f"{version}.tfstate.meta")
