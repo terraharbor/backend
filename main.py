@@ -173,7 +173,7 @@ async def delete_user_by_id(
 # GET  /state/{project}/{state_name}
 @app.get("/state/{project_id}/{state_name}", response_class=FileResponse, tags=["auth"])
 async def get_state(
-    project_id: str,
+    project_id: int,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
@@ -194,38 +194,22 @@ async def get_state(
 
 @app.get("/state/{project_id}")
 async def get_states(
-        project_id: str,
+        project_id: int,
         user: Annotated[User, Depends(get_auth_user)]
 ) -> list[dict]:
     return get_states_from_db_for_project_id(project_id)
 
 # GET /state/{project}/{state_name}/status
-@app.get("/state/{project}/{state_name}/status", response_model=dict, tags=["auth"])
+@app.get("/state/{project_id}/{state_name}/status", response_model=dict, tags=["auth"])
 async def get_state_status(
-    project: str,
+    project_id: int,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
 ) -> dict:
     """
     Method to get the status of a state: if a state is locked or not.
     """
-    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
-    if os.path.exists(lock_path):
-        with open(lock_path, "r") as f:
-            return {"status": "locked", **json.loads(f.read())}
-    return {"status": "unlocked", "locker": "", "timestamp": ""}
-
-# GET /state/{project}/{state_name}/status
-@app.get("/state/{project}/{state_name}/status", response_model=dict, tags=["auth"])
-async def get_state_status(
-    project: str,
-    state_name: str,
-    user: Annotated[User, Depends(get_auth_user)],
-) -> dict:
-    """
-    Method to get the status of a state: if a state is locked or not.
-    """
-    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
             return {"status": "locked", **json.loads(f.read())}
@@ -234,7 +218,7 @@ async def get_state_status(
 # POST /state/{project}/{state_name}
 @app.post("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
 async def put_state(
-    project_id: str,
+    project_id: int,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)],
@@ -275,7 +259,7 @@ async def put_state(
 # LOCK  /state/{project}
 @app.api_route("/state/{project_id}/{state_name}", methods=["LOCK"], response_class=Response, tags=["auth"])
 async def lock_state(
-    project_id: str,
+    project_id: int,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
@@ -300,7 +284,7 @@ async def lock_state(
 # UNLOCK /state/{project_id}
 @app.api_route("/state/{project_id}/{state_name}", methods=["UNLOCK"], response_class=Response, tags=["auth"])
 async def unlock_state(
-    project_id: str,
+    project_id: int,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
@@ -328,7 +312,7 @@ async def unlock_state(
 # DELETE /state/{project}
 @app.delete("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
 async def delete_state(
-    project_id: str,
+    project_id: int,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
@@ -380,7 +364,7 @@ async def delete_state(
 
 # Project token endpoints
 @app.get("/token/project/{project_id}")
-async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, permissions: int) -> dict:
+async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: int, permissions: int) -> dict:
     """
     Create a new project token with specified permissions.
     Permissions: 1 = read, 2 = write, 3 = read-write
@@ -395,7 +379,7 @@ async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
 
 
 @app.delete("/token/project/{project_id}/{project_token}", response_class=Response)
-async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: int, project_token: str) -> Response:
     """
     Delete a project token.
     """
@@ -409,7 +393,7 @@ async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
 
 
 @app.get("/state/{project_id}/{project_token}/canRead", response_class=Response)
-async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project_id: int, project_token: str) -> Response:
     """
     Check if the user has read rights for the specified project and token.
     """
@@ -420,7 +404,7 @@ async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project
 
 
 @app.get("/state/{project_id}/{project_token}/canWrite", response_class=Response)
-async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], project_id: int, project_token: str) -> Response:
     """
     Check if the user has write rights for the specified project and token.
     """
@@ -508,16 +492,16 @@ async def get_projects(user: Annotated[User, Depends(get_auth_user)]) -> list[di
 
 
 @app.get("/projects/{project_id}")
-async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> list[dict]:
     return get_project_for_project_id(project_id)
 
 
 @app.get("/projects/{project_id}/teams")
-async def get_teams_for_project(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+async def get_teams_for_project(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> list[dict]:
     return get_teams_for_project_id(project_id)
 
 @app.patch("/projects/{project_id}")
-async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str, request: Request) -> dict:
+async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int, request: Request) -> dict:
     body = (await request.body()).decode() or "{}"
 
     data_dict = json.loads(body)
@@ -531,7 +515,7 @@ async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
 
 @app.delete("/projects/{project_id}")
-async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> dict:
+async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> dict:
     if user.isAdmin:
         return delete_project(int(project_id))
     else:
