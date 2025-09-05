@@ -14,5 +14,4 @@ def get_teams_ids_of_project_id(project_id :str) -> list[int]:
             if rows:
                 out = [row[0] for row in rows]
                 return out
-            else:
-                return []
+    return []

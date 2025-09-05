@@ -35,17 +35,18 @@ def decode_token(token: str) -> User | None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl, u.isAdmin
+                    SELECT u.id, u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl, u.isAdmin
                     FROM users u
                     JOIN auth_tokens t ON u.id = t.user_id
                     WHERE t.token = %s
                 """, (token,))
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, salt, disabled, token, created_at, ttl, is_admin = row
+                    id, username, password_hash, salt, disabled, token, created_at, ttl, is_admin = row
                     # Calculate token expiration timestamp as an integer (Unix timestamp)
                     expiration_time = int(time.mktime((created_at + ttl).timetuple()))
                     return User(
+                        id=id,
                         username=username,
                         sha512_hash=password_hash,
                         disabled=disabled,
@@ -72,11 +73,11 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, salt, disabled, isadmin FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
+                cur.execute("SELECT id, username, password_hash, salt, disabled, isadmin FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, salt, disabled, isadmin = row
-                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt, isAdmin=isadmin)
+                    id, username, password_hash, salt, disabled, isadmin = row
+                    return User(id=id, username=username, sha512_hash=password_hash, disabled=disabled, salt=salt, isAdmin=isadmin)
     except Exception as e:
         logger.error(f"Error retrieving user '{username}': {e}")
         return None
