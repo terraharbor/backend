@@ -641,4 +641,3 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
         return create_team(data_dict['name'], data_dict['description'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")
-

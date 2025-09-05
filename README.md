@@ -23,7 +23,8 @@
   - [Authenticated Endpoints](#authenticated-endpoints)
     - [Request example (with LOCK)](#request-example-with-lock)
     - [Request example](#request-example-2)
-    - [Request example](#request-example-3)
+    - [Request Example](#request-example-3)
+    - [Response Example](#response-example)
     - [Request example](#request-example-4)
     - [Request example](#request-example-5)
     - [Request example](#request-example-6)
@@ -33,6 +34,7 @@
     - [Request example](#request-example-10)
     - [Request example](#request-example-11)
     - [Request example](#request-example-12)
+    - [Request example](#request-example-13)
 
 ## Local Development
 
@@ -174,7 +176,7 @@ You don't need the "?version=1". It is used only to choose what version of the s
 
 #### Request Example
 
-```zsh
+```bash
 curl -X GET http://localhost:8000/states/foo_project_id/foo_state \
  -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
