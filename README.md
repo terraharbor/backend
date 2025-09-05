@@ -34,7 +34,6 @@
     - [Request example](#request-example-11)
     - [Request example](#request-example-12)
 
-
 ## Local Development
 
 In order to locally test this repository, clone this repo locally and the [infrastructure](https://github.com/terraharbor/infrastructure). Comment the services you don't want to test or you did not download (ex: frontend). Then, go into `infrastructure/docker-compose/` and execute:
