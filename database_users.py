@@ -43,7 +43,11 @@ def update_user(user_id: int, username: str, is_admin: bool) -> dict:
                 SET username = %s, isAdmin = %s
                 WHERE id = %s""", (username, is_admin, user_id))
 
-                return {"OK": "updated successfully the user"}
+                return {
+                    "id": user_id,
+                    "username": username,
+                    "isAdmin": is_admin
+                }
     except:
         raise HTTPException(status_code=404, detail="User not found")
 
