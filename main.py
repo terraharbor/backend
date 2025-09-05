@@ -375,12 +375,12 @@ async def delete_state(
     """
 
     state_dir = _state_dir(project_id, state_name)
-    logger.info(f"State asked to delete: {state_dir}")
+    logger.info(f"{user}:State asked to delete: {state_dir}")
     if version is not None:
         path = _versioned_state_path(project_id, state_name, version)
         meta_path = _versioned_state_info_path(project_id, state_name, version)
         if os.path.exists(path):
-            logger.info(f"Deleting state version: {path}")
+            logger.info(f"{user}:Deleting state version: {path}")
             os.remove(path)
             if os.path.exists(meta_path):
                 os.remove(meta_path)
@@ -406,7 +406,7 @@ async def delete_state(
     else:
         # Remove all versions and latest
         for file in os.listdir(state_dir):
-            logger.info(f"Deleting state file: {file}")
+            logger.info(f"{user}: Deleting state file: {file}")
             path = os.path.join(state_dir, file)
             os.remove(path)
             # Clean up the DB
@@ -426,7 +426,7 @@ async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
     try:
         project_token = create_project_token(user.username, project_id, permissions)
     except Exception as e:
-        logger.error(f"Failed to create project token: {e}")
+        logger.error(f"{user}:Failed to create project token: {e}")
         raise HTTPException(status_code=403, detail="Failed to create project token")
 
     return {"project_token": project_token}
@@ -440,7 +440,7 @@ async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], proje
     try:
         revoke_project_token(user.username, project_id, project_token)
     except Exception as e:
-        logger.error(f"Failed to revoke project token: {e}")
+        logger.error(f"{user}:Failed to revoke project token: {e}")
         raise HTTPException(status_code=403, detail="Failed to revoke project token")
 
     return Response(status_code=status.HTTP_200_OK)
@@ -541,103 +541,130 @@ async def create_token(user: Annotated[User, Depends(get_auth_user)], request: R
 
 @app.get("/projects")
 async def get_projects(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    logger.info(f"{user}:Fetching all projects")
     # ID, name, desc, last_updated_timestamp, list[teamId]
     return get_all_projects()
 
 
 @app.get("/projects/{project_id}")
 async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> list[dict]:
+    logger.info(f"{user}:Fetching project by ID: {project_id}")
     return get_project_for_project_id(project_id)
 
 
 @app.get("/projects/{project_id}/teams")
 async def get_teams_for_project(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> list[dict]:
+    logger.info(f"{user}:Fetching teams for project ID: {project_id}")
     return get_teams_for_project_id(project_id)
 
 @app.patch("/projects/{project_id}")
 async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int, request: Request) -> dict:
+    logger.info(f"{user}:Updating project by ID: {project_id}")
     body = (await request.body()).decode() or "{}"
 
     data_dict = json.loads(body)
 
     if data_dict.get('name') is None or data_dict.get('description') is None or data_dict.get('teamIds') is None:
+        logger.warning(f"{user}:Incomplete form data")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
+        logger.info(f"{user}:Update project by ID confirmed: {project_id}")
         return update_project(int(project_id), data_dict['name'], data_dict['description'], data_dict['teamIds'])
     else:
+        logger.warning(f"{user}:Forbidden to update project by ID: {project_id}")
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
 
 @app.delete("/projects/{project_id}")
 async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> dict:
+    logger.info(f"{user}:Deleting project by ID: {project_id}")
     if user.isAdmin:
         return delete_project(int(project_id))
     else:
+        logger.warning(f"{user}:Forbidden to delete project by ID: {project_id}")
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove project")
 
 
 @app.post("/projects")
 async def create_new_project(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    logger.info(f"{user}:Attempting to create new project")
     if user.isAdmin:
+        logger.info(f"{user}:Creating new project: admin rights confirmed")
         body = (await request.body()).decode() or "{}"
 
         data_dict = json.loads(body)
 
         if data_dict.get('name') is None or data_dict.get('description') is None:
+            logger.warning(f"{user}:Incomplete form data for new project")
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
+        logger.info(f"{user}:New project data received: {data_dict['name']}")
         return create_project(data_dict["name"], data_dict["description"])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create project")
 
 @app.get("/teams")
 async def get_teams(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    logger.info(f"{user}:Fetching all teams")
     return get_all_teams()
 
 @app.get("/teams/{team_id}")
 async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+    logger.info(f"{user}:Fetching team by ID: {team_id}")
     return get_team_for_team_id(int(team_id))
 
 @app.get("/teams/{team_id}/users")
 async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
+    logger.info(f"{user}:Fetching users for team ID: {team_id}")
     return get_users_for_team_id(int(team_id))
 
 @app.get("/teams/{team_id}/projects")
 async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
+    logger.info(f"{user}:Fetching projects for team ID: {team_id}")
     return get_projects_for_team_id(int(team_id))
 
 @app.patch("/teams/{team_id}")
 async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str, request: Request) -> dict:
+    logger.info(f"{user}:Updating team by ID: {team_id}")
     body = (await request.body()).decode() or "{}"
 
     data_dict = json.loads(body)
 
     if data_dict.get('name') is None or data_dict.get('description') is None or data_dict.get('userIds') is None:
+        logger.warning(f"{user}:Incomplete form data for updating team ID: {team_id}")
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
+        logger.info(f"{user}:Update team by ID confirmed: {team_id}")
         return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'], data_dict['userIds'])
     else:
+        logger.warning(f"{user}:Forbidden to update team by ID: {team_id}")
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
 
 
 @app.delete("/teams/{team_id}")
 async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
     if user.isAdmin:
+        logger.info(f"{user}:Deleting team by ID: {team_id}")
         return delete_team(int(team_id))
     else:
+        logger.warning(f"{user}:Forbidden to delete team by ID: {team_id}")
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to delete team")
 
 @app.post("/teams")
 async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    logger.info(f"{user}:Attempting to create new team")
     body = (await request.body()).decode() or "{}"
 
     data_dict = json.loads(body)
 
     if data_dict.get('name') is None or data_dict.get('description') is None:
+        logger.warning(f"{user}:Incomplete form data for new team")
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
+        logger.info(f"{user}:Creating new team: admin rights confirmed")
         return create_team(data_dict['name'], data_dict['description'])
     else:
+        logger.warning(f"{user}:Forbidden to create new team")
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")
