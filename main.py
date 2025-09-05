@@ -21,7 +21,7 @@ from files_table_handler import write_state_path_to_db, get_state_from_db, delet
 from lock_helpers import check_lock_id
 from path_tools import _state_dir, _latest_state_path, _versioned_state_info_path, _versioned_state_path
 
-from team_accesses import fetch_team_tokens_for_username
+from team_accesses import fetch_team_tokens_for_username, can_access_with_project_id, can_access_with_team_id
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
     get_accessible_projects_for_user_id, get_all_project_tokens, delete_project_token
 
@@ -556,7 +556,10 @@ async def get_projects(user: Annotated[User, Depends(get_auth_user)]) -> list[di
 @app.get("/projects/{project_id}")
 async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: int) -> list[dict]:
     logger.info(f"{user}:Fetching project by ID: {project_id}")
-    return get_project_for_project_id(project_id)
+    if user.isAdmin or can_access_with_project_id(user.username, project_id):
+        return get_project_for_project_id(project_id)
+    else:
+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="Must be admin of be in one of the project's teams")
 
 
 @app.get("/projects/{project_id}/teams")
@@ -628,7 +631,10 @@ async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team
 @app.get("/teams/{team_id}/projects")
 async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     logger.info(f"{user}:Fetching projects for team ID: {team_id}")
-    return get_projects_for_team_id(int(team_id))
+    if user.isAdmin or can_access_with_team_id(user.username, team_id):
+        return get_projects_for_team_id(int(team_id))
+    else:
+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="Must be part of the team to get projects")
 
 @app.patch("/teams/{team_id}")
 async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str, request: Request) -> dict:
