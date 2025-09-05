@@ -72,11 +72,11 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, salt, disabled FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
+                cur.execute("SELECT username, password_hash, salt, disabled, isadmin FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, salt, disabled = row
-                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt)
+                    username, password_hash, salt, disabled, isadmin = row
+                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt, is_admin = isadmin)
     except Exception as e:
         logger.error(f"Error retrieving user '{username}': {e}")
         return None

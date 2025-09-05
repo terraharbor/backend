@@ -97,7 +97,7 @@ def generate_project_entities(rows) -> list[dict]:
         name, pid, desc, timestamp = row
         teams_ids = get_teams_ids_of_project_id(pid)
         out.append({
-            "ID": pid,
+            "id": pid,
             "name": name,
             "description": desc,
             "timestamp": timestamp,
