@@ -23,7 +23,8 @@
   - [Authenticated Endpoints](#authenticated-endpoints)
     - [Request example (with LOCK)](#request-example-with-lock)
     - [Request example](#request-example-2)
-    - [Request example](#request-example-3)
+    - [Request Example](#request-example-3)
+    - [Response Example](#response-example)
     - [Request example](#request-example-4)
     - [Request example](#request-example-5)
     - [Request example](#request-example-6)
@@ -33,6 +34,7 @@
     - [Request example](#request-example-10)
     - [Request example](#request-example-11)
     - [Request example](#request-example-12)
+    - [Request example](#request-example-13)
 
 ## Local Development
 
@@ -66,45 +68,6 @@ pip install -r requirements.txt
 Then you can execute the tests:
 
 ```bash
-pytest
-```
-
-#### Add a unit test
-
-Go to `/tests/python/unit_tests/`.
-
-To add a test, you can add a file or go to an existing file, and create a new function. The function will be the test, and the function's name must be explicit about what is tested, and what should be returned. Ex: `test_hello_world__should_return_true`. The end of the test must be an `assert <condition>` and not a return.
-
-A unit test is supposed to be executing within a fraction of second, and only test the function that is tested's behavior. Meaning that another non-default function call should be mocked, in order to control its output, and test the sole tested function behavior. Especially if the other function makes call requests.
-
-**Basic Example Format:**
-
-```python
-def test_hello_world__should_return_true():
-  expected_result: str = "hello world"
-  output: str = hello_world()
-  assert expected_result == output
-```
-
-### Unit Tests
-
-In order to execute the unit tests, create a virtual env and use it:
-
-```zsh
-python3 -m venv test-venv
-source ./test-venv/bin/activate
-```
-
-Then install the dependencies:
-
-```zsh
-pip install pytest
-pip install -r requirements.txt
-```
-
-Then you can execute the tests:
-
-```zsh
 pytest
 ```
 
@@ -193,7 +156,7 @@ curl -X 'POST' \
 #### Request example (with LOCK)
 
 ```bash
-curl -X LOCK http://localhost:8000/state/foo_project/state.tfstate \
+curl -X LOCK http://localhost:8000/state/foo_project_id/state.tfstate \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
 
@@ -202,18 +165,44 @@ curl -X LOCK http://localhost:8000/state/foo_project/state.tfstate \
 #### Request example
 
 ```bash
-curl -X GET http://localhost:8000/state/foo_project/state.tfstate?version=1 \
+curl -X GET http://localhost:8000/state/foo_project_id/state.tfstate?version=1 \
   -H "Authorization: Bearer 3f5a358bf3da167a82e621f23a124751a902dd15541efb4aa551abeec96ee21f"
 ```
 
 You don't need the "?version=1". It is used only to choose what version of the state we want to get.
+
+
+ `GET`:`/states/{project}/{state_name}`: Gets all the available version for a given state.
+
+#### Request Example
+
+```bash
+curl -X GET http://localhost:8000/states/foo_project_id/foo_state \
+ -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
+
+#### Response Example
+
+```json
+[
+  {
+    "version":"1",
+    "created by":"user",
+    "upload date":"2025-09-03T16:34:02.780467"
+    },
+    {"version":"2",
+    "created by":"user",
+    "upload date":"2025-09-03T16:34:07.913890"
+  }
+]
+```
 
 * `POST`:`/state/{project}/{state}`: Uploads a state.
 
 #### Request example
 
 ```bash
-curl -X POST http://localhost:8000/state/foo_project/state.tfstate \
+curl -X POST http://localhost:8000/state/foo_project_id/state.tfstate \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a" \
   --data-binary @state_v1.tfstate
 ```
@@ -223,7 +212,7 @@ curl -X POST http://localhost:8000/state/foo_project/state.tfstate \
 #### Request example
 
 ```bash
-curl -X DELETE http://localhost:8000/state/foo_project/state.tfstate\?version=1 \
+curl -X DELETE http://localhost:8000/state/foo_project_id/state.tfstate\?version=1 \
   -H "Authorization: Bearer 3f5a358bf3da167a82e621f23a124751a902dd15541efb4aa551abeec96ee21f"
 ```
 

@@ -174,20 +174,22 @@ def add_access(user_id: str, team_id: str) -> str:
             with conn.cursor() as cur:
                 # Quick check: if the team has no one, the user added is automatically admin
                 cur.execute("""
-                SELECT token
+                SELECT token, userId
                 FROM team_tokens
                 WHERE teamId = %s""", (team_id,))
                 rows = cur.fetchall()
+                user_ids = [row[1] for row in rows]
 
                 if len(rows) == 0:
                     auto_admin = True
 
-                # Add user
-                token = token_hex(32)
-                cur.execute("""
-                INSERT INTO team_tokens VALUES (%s, %s, %s, B'%s', B'0', B'0', B'0', B'0')""",
-                            (token, user_id, team_id, 1 if auto_admin else 0))
-                return token
+                if user_id not in user_ids:
+                    # Add user
+                    token = token_hex(32)
+                    cur.execute("""
+                    INSERT INTO team_tokens VALUES (%s, %s, %s, B'%s', B'0', B'0', B'0', B'0')""",
+                                (token, team_id, user_id, 1 if auto_admin else 0))
+                    return token
     except Exception as e:
         logger.error(e)
         raise RuntimeError(f"Error on adding user of ID {user_id}")
