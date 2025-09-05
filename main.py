@@ -453,7 +453,7 @@ async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id:
 async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     return get_users_for_team_id(int(team_id))
 
-@app.get("/teams/{team_id}/projects}")
+@app.get("/teams/{team_id}/projects")
 async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     return get_projects_for_team_id(int(team_id))
 
@@ -492,3 +492,7 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
         return create_team(data_dict['name'], data_dict['description'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
