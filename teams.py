@@ -151,8 +151,8 @@ def update_team_by_team_id(team_id: int, name: str, description: str, user_ids: 
                 if user_rows:
                     for row in user_rows:
                         uid = row[0]
-                        if uid in user_ids:
-                            user_ids.remove(remove_user_id_from_team(uid, str(team_id)))
+                        if uid not in user_ids:
+                            remove_user_id_from_team(uid, str(team_id))
 
                 # Add unregistered users
                 for to_reg_id in user_ids:

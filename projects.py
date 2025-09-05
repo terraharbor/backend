@@ -84,8 +84,8 @@ def update_project(project_id: int, name: str, desc: str, team_ids: list) -> dic
                 if project_rows:
                     for row in project_rows:
                         tid = row[0]
-                        if tid in team_ids:
-                            team_ids.remove(remove_team_id_from_project(tid, str(project_id)))
+                        if tid not in team_ids:
+                            remove_team_id_from_project(tid, str(project_id))
 
                 # Add unregistered teams
                 for to_reg_id in team_ids:
@@ -131,9 +131,17 @@ def add_team_to_project(team_id: str, project_id: str) -> None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
+                # Récupérer tous les team_ids associés à ce projet
                 cur.execute("""
-                            INSERT INTO project_teams VALUES (2, %s, %s)""",
-                            (team_id, project_id))
+                SELECT team_id
+                FROM project_teams
+                WHERE project_id = %s""", (project_id,))
+                team_ids = [row[0] for row in cur.fetchall()]
+
+                if team_id not in team_ids:
+                    cur.execute("""
+                                INSERT INTO project_teams VALUES (2, %s, %s)""",
+                                (team_id, project_id))
     except Exception as e:
         logger.error(e)
         raise RuntimeError(f"Error on adding team of ID {team_id} to project")
