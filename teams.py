@@ -170,8 +170,7 @@ def get_all_teams() -> list[dict]:
 
                 return out
             else:
-                logger.error("Error when fetching all teams")
-                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Teams not found")
+                return []
 
 
 def get_users_for_team_id(team_id: int) -> list[dict]:
