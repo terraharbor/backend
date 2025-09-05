@@ -184,8 +184,9 @@ async def get_state(
 
     state_path = get_state_from_db(path, project_id)
 
-    if not os.path.exists(state_path):
-        raise HTTPException(status_code=404, detail="State not found in filesystem")
+    if state_path:
+        if not os.path.exists(state_path):
+            raise HTTPException(status_code=404, detail="State not found in filesystem")
     return FileResponse(path, media_type="application/octet-stream")
 
 
