@@ -68,8 +68,8 @@ def update_project(project_id: int, name: str, desc: str) -> dict:
                     "id": project_id,
                     "name": name,
                     "description": desc,
-                    "timestamp": row[0],
-                    "teamsIds": get_teams_ids_of_project_id(str(project_id))
+                    "lastUpdated": row[0],
+                    "teamIds": get_teams_ids_of_project_id(str(project_id))
                 }
     except Exception as ex:
         logger.error(f"Exception while updating project: {ex}")
@@ -120,7 +120,7 @@ def generate_project_entities(rows) -> list[dict]:
             "id": pid,
             "name": name,
             "description": desc,
-            "timestamp": timestamp,
-            "teamsIds": teams_ids
+            "lastUpdated": timestamp,
+            "teamIds": teams_ids
         })
     return out
