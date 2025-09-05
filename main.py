@@ -1,21 +1,37 @@
+from http import HTTPStatus
+from tabnanny import check
 from typing import Annotated
+
+import uvicorn
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 import datetime
 from hashlib import sha512
+
 from auth_functions import *
+from database_users import get_all_users, update_user, delete_user
 from fastapi_custom_dependancy import get_auth_user
 import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from lock_helpers import check_lock_id
+from path_tools import _state_dir, _latest_state_path, _
+ed_state_path
 
-DATA_DIR = os.getenv("STATE_DATA_DIR", "./data")
+from team_accesses import fetch_team_tokens_for_username
+from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
+    get_accessible_projects_for_user_id, get_all_project_tokens
+
+from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
+    delete_project, create_project
+from teams import get_teams_for_user, get_teams_for_project_id, get_all_teams, get_team_for_team_id, \
+    get_users_for_team_id, get_projects_for_team_id, update_team_by_team_id, delete_team, create_team
 
 app = FastAPI(title="TerraHarbor")
 
-# Add CORS middleware to fix communication between frontend and backend: 
+# Add CORS middleware to fix communication between frontend and backend:
 # browser was refusing backend response
 app.add_middleware(
     CORSMiddleware,
@@ -29,16 +45,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 basic_auth = HTTPBasic()
 logger = logging.getLogger(__name__)
 
-def _state_dir(project: str, state_name: str) -> str:
-    path = os.path.join(DATA_DIR, project, state_name)
-    os.makedirs(path, exist_ok=True)
-    return path
 
-def _latest_state_path(project: str, state_name: str) -> str:
-    return os.path.join(_state_dir(project, state_name), "latest.tfstate")
-
-def _versioned_state_path(project: str, state_name: str, version: int) -> str:
-    return os.path.join(_state_dir(project, state_name), f"{version}.tfstate")
 
 def _versioned_state_info_path(project: str, state_name: str, version: int) -> str:
     return os.path.join(_state_dir(project, state_name), f"{version}.tfstate.meta")
@@ -78,14 +85,18 @@ async def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
 
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
+
     salted_password = user.salt + form_data.password
 
     if user.sha512_hash != sha512(salted_password.encode()).hexdigest():
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
-    access_token = token_hex(32)
-    update_user_token(user.username, access_token)
+
+    # Check if the user is online already
+    access_token = is_logged_in(user)
+    if not access_token:
+        access_token = token_hex(32)
+        update_user_token(user.username, access_token)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/login")
@@ -96,12 +107,70 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> d
     return await token(form_data)
 
 
+@app.post("/logout", tags=["auth"])
+async def logout(user: Annotated[User, Depends(get_auth_user)]) -> Response:
+    """
+    Disconnects current user
+    """
+    try:
+        disable_user(user.username, is_logged_in(user))
+    except Exception as e:
+        logger.error(f"Error on logout: {e}")
+        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(status_code=status.HTTP_200_OK)
+
+
 @app.get("/me", tags=["auth"])
 async def me(user: Annotated[User, Depends(get_auth_user)]) -> User:
     """
     Retrieve the currently authenticated user (Bearer ou Basic).
     """
     return user
+
+
+# Users endpoints
+@app.get("/users")
+async def get_users(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    return get_all_users()
+
+
+@app.get("/users/{user_id}/projects")
+async def get_user_projects(user: Annotated[User, Depends(get_auth_user)], user_id: str) -> list[dict]:
+    return get_projects_for_user_id(user_id)
+
+
+@app.get("/users/{user_id}/teams")
+async def get_user_teams(user: Annotated[User, Depends(get_auth_user)], user_id: str) -> list[dict]:
+    return get_teams_for_user(int(user_id))
+
+
+@app.patch("/users/{user_id}")
+async def update_user_id(
+        user: Annotated[User, Depends(get_auth_user)],
+        user_id: str,
+        request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if data_dict.get('username') is None or data_dict.get('isAdmin') is None:
+        raise HTTPException(status_code=400, detail="Incomplete form data")
+
+    if user.isAdmin:
+        return update_user(int(user_id), data_dict['username'], data_dict['isAdmin'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update user")
+
+
+@app.delete("/users/{user_id}")
+async def delete_user_by_id(
+        user: Annotated[User, Depends(get_auth_user)],
+        user_id: str) -> dict:
+    if user.isAdmin:
+        return delete_user(int(user_id))
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove user")
+
 
 # GET  /state/{project}/{state_name}
 @app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])
@@ -165,21 +234,24 @@ async def put_state(
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)],
-    version: int = None
+    ID: str = None
 ) -> Response:
+    logger.info(f"PUT state called for project={project} state_name={state_name} user={user.username} ID={ID}")
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
     # Get the version from the query parameter or the JSON body
-    if version is None:
-        try:
-            json_body = json.loads(body)
-            version = json_body.get("version")
-        except Exception:
+
+    try:
+        json_body = json.loads(body)
+        version = json_body.get("version")
+    except Exception:
             pass
     if version is None:
         raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
-    
+    if ID:
+        if not check_lock_id(project, state_name, ID):
+            raise HTTPException(status_code=409, detail="State is locked with a different ID")
     version_path = _versioned_state_path(project, state_name, version)
     latest_path = _latest_state_path(project, state_name)
     info_path = _versioned_state_info_path(project, state_name, version)
@@ -222,16 +294,16 @@ async def unlock_state(
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
         return Response(status_code=status.HTTP_200_OK)
-    
+
     req_info = json.loads((await request.body()).decode() or "{}")
 
     with open(lock_path, "r") as f:
         cur_info = json.loads(f.read() or "{}")
-    
+
     # if the request ID is provided and does not match the current lock ID, return error 409 Conflict
     if req_info.get("ID") and req_info["ID"] != cur_info.get("ID"):
         return Response(json.dumps(cur_info), status_code=status.HTTP_409_CONFLICT, media_type="application/json")
-    
+
     os.remove(lock_path)
     return Response(status_code=status.HTTP_200_OK)
 
@@ -274,3 +346,201 @@ async def delete_state(
             # logger.info(f"Deleting state file: {file}")
             os.remove(os.path.join(state_dir, file))
     return Response(status_code=status.HTTP_200_OK)
+
+
+
+# Project token endpoints
+@app.get("/token/project/{project_id}")
+async def create_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, permissions: int) -> dict:
+    try:
+        project_token = create_project_token(user.username, project_id, permissions)
+    except Exception as e:
+        logger.error(f"Failed to create project token: {e}")
+        raise HTTPException(status_code=403, detail="Failed to create project token")
+
+    return {"project_token": project_token}
+
+
+@app.delete("/token/project/{project_id}/{project_token}", response_class=Response)
+async def delete_proj_token(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    try:
+        revoke_project_token(user.username, project_id, project_token)
+    except Exception as e:
+        logger.error(f"Failed to revoke project token: {e}")
+        raise HTTPException(status_code=403, detail="Failed to revoke project token")
+
+    return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/state/{project_id}/{project_token}/canRead", response_class=Response)
+async def has_read_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    if not has_read_access(project_id, project_token):
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/state/{project_id}/{project_token}/canWrite", response_class=Response)
+async def has_write_rights(user: Annotated[User, Depends(get_auth_user)], project_id: str, project_token: str) -> Response:
+    if not has_write_access(project_id, project_token):
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        return Response(status_code=status.HTTP_200_OK)
+
+
+@app.get("/teams/list")
+async def list_accesses(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    perms = fetch_team_tokens_for_username(user.username)
+
+    res = {}
+    for perm in perms:
+        perm_dict = {perm.team : {
+            "Admin": perm.admin,
+            "CanAddProject": perm.can_add_proj,
+            "CanRemoveProject": perm.can_del_proj,
+            "CanCreateProjectToken": perm.can_add_token,
+            "CanRemoveProjectToken": perm.can_del_token
+        }}
+        res.update(perm_dict)
+
+    return res
+
+
+@app.get("/state/list")
+async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    user_id = get_user_id(user.username)
+
+    perms = get_accessible_projects_for_user_id(user_id)
+
+    res: list[dict[str, str]] = []
+
+    for perm in perms:
+        res.append({f"{perm.projectId} - {perm.projectName}": "READ" if perm.permission == 1 else "WRITE" if perm.permission == 2 else "READ-WRITE"})
+
+    return res
+
+
+@app.get("/token/all")
+async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    res = get_all_project_tokens(user.username)
+
+    display = {}
+
+    for name, res_in in res.items():
+        token_display = []
+        for project_token in res_in:
+            token_display.append({
+                "token": project_token.token,
+                "id": project_token.projectId,
+                "Name": project_token.projectName,
+                "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
+            })
+        display.update({
+            name: token_display
+        })
+
+    return display
+
+
+@app.get("/projects")
+async def get_projects(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    # ID, name, desc, last_updated_timestamp, list[teamId]
+    return get_all_projects()
+
+
+@app.get("/projects/{project_id}")
+async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+    return get_project_for_project_id(project_id)
+
+
+@app.get("/projects/{project_id}/teams")
+async def get_teams_for_project(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+    return get_teams_for_project_id(project_id)
+
+@app.patch("/projects/{project_id}")
+async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str, request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if data_dict.get('name') is None or data_dict.get('description') is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete form data")
+
+    if user.isAdmin:
+        return update_project(int(project_id), data_dict['name'], data_dict['description'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
+
+@app.delete("/projects/{project_id}")
+async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> dict:
+    if user.isAdmin:
+        return delete_project(int(project_id))
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove project")
+
+
+@app.post("/projects")
+async def create_new_project(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    if user.isAdmin:
+        body = (await request.body()).decode() or "{}"
+
+        data_dict = json.loads(body)
+
+        if data_dict.get('name') is None or data_dict.get('description') is None:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
+
+        return create_project(data_dict["name"], data_dict["description"])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create project")
+
+@app.get("/teams")
+async def get_teams(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    return get_all_teams()
+
+@app.get("/teams/{team_id}")
+async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+    return get_team_for_team_id(int(team_id))
+
+@app.get("/teams/{team_id}/users")
+async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+    return get_users_for_team_id(int(team_id))
+
+@app.get("/teams/{team_id}/projects}")
+async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+    return get_projects_for_team_id(int(team_id))
+
+@app.patch("/teams/{team_id}")
+async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str, request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if data_dict.get('name') is None or data_dict.get('description') is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
+
+    if user.isAdmin:
+        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
+
+
+@app.delete("/teams/{team_id}")
+async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+    if user.isAdmin:
+        return delete_team(int(team_id))
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to delete team")
+
+@app.post("/teams")
+async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if data_dict.get('name') is None or data_dict.get('description') is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
+
+    if user.isAdmin:
+        return create_team(data_dict['name'], data_dict['description'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")

@@ -35,23 +35,25 @@ def decode_token(token: str) -> User | None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl
+                    SELECT u.id, u.username, u.password_hash, u.salt, u.disabled, t.token, t.created_at, t.ttl, u.isAdmin
                     FROM users u
                     JOIN auth_tokens t ON u.id = t.user_id
                     WHERE t.token = %s
                 """, (token,))
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, salt, disabled, token, created_at, ttl = row
+                    id, username, password_hash, salt, disabled, token, created_at, ttl, is_admin = row
                     # Calculate token expiration timestamp as an integer (Unix timestamp)
                     expiration_time = int(time.mktime((created_at + ttl).timetuple()))
                     return User(
+                        id=id,
                         username=username,
                         sha512_hash=password_hash,
                         disabled=disabled,
                         token=token,
                         token_validity=expiration_time,
-                        salt=salt
+                        salt=salt,
+                        isAdmin=is_admin
                     )
     except Exception as e:
         print(f"Error decoding token: {e}")
@@ -71,11 +73,11 @@ def get_user(username: str) -> User | None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT username, password_hash, salt, disabled FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
+                cur.execute("SELECT id, username, password_hash, salt, disabled, isadmin FROM users WHERE username = %s", (username,)) # Need the input of the query to be a tuple.
                 row = cur.fetchone()
                 if row:
-                    username, password_hash, salt, disabled = row
-                    return User(username=username, sha512_hash=password_hash, disabled=disabled, salt=salt)
+                    id, username, password_hash, salt, disabled, isadmin = row
+                    return User(id=id, username=username, sha512_hash=password_hash, disabled=disabled, salt=salt, isAdmin=isadmin)
     except Exception as e:
         logger.error(f"Error retrieving user '{username}': {e}")
         return None
@@ -96,7 +98,7 @@ def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials 
         raise HTTPException(status_code=401, detail="Invalid or disabled token")
     elif credentials:
         user = get_user(credentials.username)
-        if user and not user.disabled:
+        if user: # Useless if the user is logged in or not, since the requests contains the creds
             salted_password = user.salt + credentials.password
             calculated_hash = sha512(salted_password.encode()).hexdigest()
             logger.info(f"[AUTH] username={credentials.username} salt={user.salt} password={credentials.password}")
@@ -106,6 +108,27 @@ def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials 
         logger.warning(f"[AUTH] Basic Auth failed for user {credentials.username}")
         raise HTTPException(status_code=401, detail="Invalid Basic Auth credentials")
     raise HTTPException(status_code=401, detail="No authentication provided")
+
+def get_user_id(username: str) -> str | None:
+    """
+    Retrieve the user's ID from DB
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                row = cur.fetchone()
+                if row:
+                    return row[0]
+    except Exception as e:
+        return None
+    finally:
+        try:
+            conn.close()
+        except:
+            logger.error("Error closing database connection")
+    return None
 
 def get_current_user(token = None, credentials = None) -> User | str:
     """
@@ -143,9 +166,12 @@ def register_user(user: User) -> None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
+                # Check if it's the first user to ever exist
+                admin_flag = init_user_check()
+
                 cur.execute(
-                    "INSERT INTO users (username, password_hash, salt, disabled) VALUES (%s, %s, %s, %s)",
-                    (user.username, user.sha512_hash, user.salt, False)
+                    "INSERT INTO users (username, password_hash, salt, disabled, isAdmin) VALUES (%s, %s, %s, %s, %s)",
+                    (user.username, user.sha512_hash, user.salt, False, admin_flag)
                 )
     except Exception as e:
         raise RuntimeError(f"Failed to register user: {e}")
@@ -154,6 +180,46 @@ def register_user(user: User) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
+
+
+def init_user_check() -> bool:
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT COUNT(*) FROM users""")
+
+            row = cur.fetchone()
+            return row[0] == 0
+
+
+def is_logged_in(user: User) -> str:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                SELECT t.token
+                FROM auth_tokens t
+                JOIN users u ON u.id = t.user_id
+                WHERE u.username = %s""", (user.username,))
+
+                row = cur.fetchone()
+                if row:
+                    token = row[0]
+                    if is_bearer_token_valid(token):
+                        # If token is still valid, return it
+                        return token
+                    else:
+                        # Token validity check has blown the token off the auth table, return nothing
+                        return None
+    except Exception as e:
+        logger.error(f"Error while checking for login-ness for user '{user.username}': {e}")
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
 
 
 def update_user_token(username: str, token: str) -> None:
@@ -176,6 +242,10 @@ def update_user_token(username: str, token: str) -> None:
                     "INSERT INTO auth_tokens (user_id, token, created_at, ttl) VALUES (%s, %s, NOW(), %s::INTERVAL)",
                     (user_id, token, f'{token_validity} seconds')
                 )
+                # Update disabled flag
+                cur.execute(
+                    "UPDATE users SET disabled=FALSE WHERE id = %s", (user_id,)
+                )
     except Exception as e:
         raise RuntimeError(f"Failed to update user token: {e}")
     finally:
@@ -183,6 +253,35 @@ def update_user_token(username: str, token: str) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
+
+
+
+def disable_user(username: str, token: str) -> None:
+    """
+    Disable a given user in the system. Needs its last token for safety (preventing user delog solely through name)
+    """
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                WITH r AS (
+                    SELECT t.user_id
+                    FROM auth_tokens t
+                    JOIN users u ON u.id = t.user_id
+                    WHERE t.token = %s
+                    AND u.username = %s)
+                UPDATE users
+                SET disabled = TRUE
+                FROM r
+                WHERE users.id = r.user_id""", (token, username,))
+
+                cur.execute("""
+                DELETE FROM auth_tokens
+                WHERE token = %s""", (token,))
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to disable user: {e}")
 
 
 def is_bearer_token_valid(token: str) -> bool:
@@ -194,7 +293,7 @@ def is_bearer_token_valid(token: str) -> bool:
         with conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT t.created_at, t.ttl, u.disabled
+                    SELECT t.id, t.created_at, t.ttl, u.disabled, u.username
                     FROM auth_tokens t
                     JOIN users u ON u.id = t.user_id
                     WHERE t.token = %s
@@ -202,12 +301,21 @@ def is_bearer_token_valid(token: str) -> bool:
                 row = cur.fetchone()
                 if not row:
                     return False
-                created_at, ttl, disabled = row
+                aid, created_at, ttl, disabled, username = row
                 if disabled:
                     return False
                 # Verifies that the token has not expired
                 cur.execute("SELECT NOW() < (%s + %s)", (created_at, ttl))
                 valid = cur.fetchone()[0]
+                # Refresh the token if valid
+                if valid:
+                    cur.execute("""
+                    UPDATE auth_tokens
+                    SET created_at = NOW()
+                    WHERE id = %s""", (aid,))
+                else:
+                    # Out you go, keep the auth_tokens table coherent
+                    disable_user(username, token)
                 logger.info(f"Checked token {token}: valid={valid}")
                 return valid
     except Exception as e:
