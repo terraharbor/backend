@@ -165,9 +165,12 @@ def register_user(user: User) -> None:
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
+                # Check if it's the first user to ever exist
+                admin_flag = init_user_check()
+
                 cur.execute(
-                    "INSERT INTO users (username, password_hash, salt, disabled) VALUES (%s, %s, %s, %s)",
-                    (user.username, user.sha512_hash, user.salt, False)
+                    "INSERT INTO users (username, password_hash, salt, disabled, isAdmin) VALUES (%s, %s, %s, %s, %s)",
+                    (user.username, user.sha512_hash, user.salt, False, admin_flag)
                 )
     except Exception as e:
         raise RuntimeError(f"Failed to register user: {e}")
@@ -176,6 +179,17 @@ def register_user(user: User) -> None:
             conn.close()
         except:
             logger.error("Error closing database connection")
+
+
+def init_user_check() -> bool:
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT COUNT(*) FROM users""")
+
+            row = cur.fetchone()
+            return row[0] == 0
 
 
 def is_logged_in(user: User) -> str:
