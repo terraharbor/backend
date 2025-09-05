@@ -59,11 +59,9 @@ def get_state_from_db(file_path: str, project_id: str) -> str | None:
                 row = cur.fetchone()
                 if row:
                     return file_path
+    except Exception as e:
         logger.error(f"State not found for given path {file_path} and project {project_id}")
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"State not found for given path {file_path} and project {project_id}")
-    except Exception as e:
-        logger.error(f"Exception while getting state from db: {e}")
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 def get_states_from_db_for_project_id(project_id: str) -> list[dict]:
