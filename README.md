@@ -154,7 +154,7 @@ curl -X 'POST' \
 #### Request example (with LOCK)
 
 ```bash
-curl -X LOCK http://localhost:8000/state/foo_project/state.tfstate \
+curl -X LOCK http://localhost:8000/state/foo_project_id/state.tfstate \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
 ```
 
@@ -163,18 +163,44 @@ curl -X LOCK http://localhost:8000/state/foo_project/state.tfstate \
 #### Request example
 
 ```bash
-curl -X GET http://localhost:8000/state/foo_project/state.tfstate?version=1 \
+curl -X GET http://localhost:8000/state/foo_project_id/state.tfstate?version=1 \
   -H "Authorization: Bearer 3f5a358bf3da167a82e621f23a124751a902dd15541efb4aa551abeec96ee21f"
 ```
 
 You don't need the "?version=1". It is used only to choose what version of the state we want to get.
+
+
+ `GET`:`/states/{project}/{state_name}`: Gets all the available version for a given state.
+
+#### Request Example
+
+```zsh
+curl -X GET http://localhost:8000/states/foo_project_id/foo_state \
+ -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a"
+```
+
+#### Response Example
+
+```json
+[
+  {
+    "version":"1",
+    "created by":"user",
+    "upload date":"2025-09-03T16:34:02.780467"
+    },
+    {"version":"2",
+    "created by":"user",
+    "upload date":"2025-09-03T16:34:07.913890"
+  }
+]
+```
 
 * `POST`:`/state/{project}/{state}`: Uploads a state.
 
 #### Request example
 
 ```bash
-curl -X POST http://localhost:8000/state/foo_project/state.tfstate \
+curl -X POST http://localhost:8000/state/foo_project_id/state.tfstate \
   -H "Authorization: Bearer 87807c4be294bcd2ada8730fbfcf5e51a6742f3836650e5741f188d80e29a95a" \
   --data-binary @state_v1.tfstate
 ```
@@ -184,7 +210,7 @@ curl -X POST http://localhost:8000/state/foo_project/state.tfstate \
 #### Request example
 
 ```bash
-curl -X DELETE http://localhost:8000/state/foo_project/state.tfstate\?version=1 \
+curl -X DELETE http://localhost:8000/state/foo_project_id/state.tfstate\?version=1 \
   -H "Authorization: Bearer 3f5a358bf3da167a82e621f23a124751a902dd15541efb4aa551abeec96ee21f"
 ```
 
