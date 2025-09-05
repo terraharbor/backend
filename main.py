@@ -219,10 +219,10 @@ async def put_state(
     if serial is None:
         raise HTTPException(status_code=400, detail="Missing state serial")
     if ID:
-        if not check_lock_id(project, state_name, ID):
+        if not check_lock_id(project_id, state_name, ID):
             raise HTTPException(status_code=409, detail="State is locked with a different ID")
-    version_path = _versioned_state_path(project, state_name, serial)
-    latest_path = _latest_state_path(project, state_name)
+    version_path = _versioned_state_path(project_id, state_name, serial)
+    latest_path = _latest_state_path(project_id, state_name)
     with open(version_path, "wb") as f:
         f.write(body)
     with open(latest_path, "wb") as f:
