@@ -1,5 +1,8 @@
+from http import HTTPStatus
 from tabnanny import check
 from typing import Annotated
+
+import uvicorn
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
@@ -18,8 +21,10 @@ from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
     get_accessible_projects_for_user_id, get_all_project_tokens
 
-from projects import get_projects_for_user_id
-from teams import get_teams_for_user
+from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
+    delete_project, create_project
+from teams import get_teams_for_user, get_teams_for_project_id, get_all_teams, get_team_for_team_id, \
+    get_users_for_team_id, get_projects_for_team_id, update_team_by_team_id, delete_team, create_team
 
 app = FastAPI(title="TerraHarbor")
 
@@ -145,7 +150,7 @@ async def update_user_id(
     if user.is_admin:
         return update_user(int(user_id), data_dict['username'], data_dict['isAdmin'])
     else:
-        return {"ERROR": "Must be admin to update user"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update user")
 
 
 @app.delete("/users/{user_id}")
@@ -155,7 +160,7 @@ async def delete_user_by_id(
     if user.is_admin:
         return delete_user(int(user_id))
     else:
-        return {"ERROR": "Must be admin to remove user"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove user")
 
 
 # GET  /state/{project}/{state_name}
@@ -371,7 +376,7 @@ async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> 
         for project_token in res_in:
             token_display.append({
                 "token": project_token.token,
-                "ID": project_token.projectId,
+                "id": project_token.projectId,
                 "Name": project_token.projectName,
                 "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
             })
@@ -380,3 +385,95 @@ async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> 
         })
 
     return display
+
+
+@app.get("/projects")
+async def get_projects(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    # ID, name, desc, last_updated_timestamp, list[teamId]
+    return get_all_projects()
+
+
+@app.get("/projects/{project_id}")
+async def get_projects_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+    return get_project_for_project_id(project_id)
+
+
+@app.get("/projects/{project_id}/teams")
+async def get_teams_for_project(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> list[dict]:
+    return get_teams_for_project_id(project_id)
+
+@app.patch("/projects/{project_id}")
+async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str, request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return update_project(int(project_id), data_dict['name'], data_dict['description'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
+
+@app.delete("/projects/{project_id}")
+async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> dict:
+    if user.is_admin:
+        return delete_project(int(project_id))
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove project")
+
+
+@app.post("/projects")
+async def create_new_project(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    if user.is_admin:
+        body = (await request.body()).decode() or "{}"
+
+        data_dict = json.loads(body)
+
+        return create_project(data_dict["name"], data_dict["description"])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create project")
+
+@app.get("/teams")
+async def get_teams(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    return get_all_teams()
+
+@app.get("/teams/{team_id}")
+async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+    return get_team_for_team_id(int(team_id))
+
+@app.get("/teams/{team_id}/users")
+async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+    return get_users_for_team_id(int(team_id))
+
+@app.get("/teams/{team_id}/projects}")
+async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+    return get_projects_for_team_id(int(team_id))
+
+@app.patch("/teams/{team_id}")
+async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str, request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
+
+
+@app.delete("/teams/{team_id}")
+async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
+    if user.is_admin:
+        return delete_team(int(team_id))
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to delete team")
+
+@app.post("/teams")
+async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if user.is_admin:
+        return create_team(data_dict['name'], data_dict['description'])
+    else:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")

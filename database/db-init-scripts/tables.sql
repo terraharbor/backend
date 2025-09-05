@@ -44,13 +44,13 @@ CREATE TABLE IF NOT EXISTS projects (
 
 CREATE TABLE IF NOT EXISTS project_teams (
     id SERIAL PRIMARY KEY,
-    team_id INTEGER NOT NULL REFERENCES teams(id),
-    project_id INTEGER NOT NULL REFERENCES projects(id)
+    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS project_tokens (
     token VARCHAR(255) PRIMARY KEY,
-    projectId SERIAL NOT NULL REFERENCES projects(id),
+    projectId SERIAL NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     userId SERIAL NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     read BIT NOT NULL,
     write BIT NOT NULL
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS project_tokens (
 
 CREATE TABLE IF NOT EXISTS files (
     id SERIAL PRIMARY KEY,
-    project_id INTEGER NOT NULL REFERENCES projects(id),
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     file_path VARCHAR(255) NOT NULL,
     file_size INTEGER NOT NULL,
     uploaded_at TIMESTAMP NOT NULL DEFAULT NOW()
