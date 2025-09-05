@@ -6,7 +6,7 @@ from http import HTTPStatus
 from auth_functions import get_db_connection, get_user_id
 from projects import generate_project_entities
 from fastapi import Response, HTTPException
-from team_accesses import fetch_team_token_for_username_and_team
+from team_accesses import fetch_team_token_for_username_and_team, add_access
 
 logger = logging.getLogger(__name__)
 
@@ -130,19 +130,58 @@ def get_users_ids_for_team(team_id: int) -> list[int]:
                 return []
 
 
-def update_team_by_team_id(team_id: int, name: str, description: str) -> dict:
+def update_team_by_team_id(team_id: int, name: str, description: str, user_ids: list) -> dict:
     conn = get_db_connection()
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-            UPDATE teams
-            SET name = %s, description = %s
-            WHERE id = %s""", (name, description, team_id))
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                UPDATE teams
+                SET name = %s, description = %s
+                WHERE id = %s""", (name, description, team_id))
 
-            return {"id": team_id,
-                    "name": name,
-                    "description": description,
-                    "userIds": get_users_ids_for_team(team_id)}
+                # Get the difference between DB users and query users
+                cur.execute("""
+                SELECT userId
+                FROM team_tokens
+                WHERE teamId = %s""", (team_id,))
+
+                user_rows = cur.fetchall()
+
+                if user_rows:
+                    for row in user_rows:
+                        uid = row[0]
+                        if uid in user_ids:
+                            user_ids.remove(remove_user_id_from_team(uid, str(team_id)))
+
+                # Add unregistered users
+                for to_reg_id in user_ids:
+                    add_access(to_reg_id, str(team_id))
+
+                return {"id": team_id,
+                        "name": name,
+                        "description": description,
+                        "userIds": get_users_ids_for_team(team_id)}
+    except Exception as e:
+        logger.error(f"Error when updating team ID {team_id}: {e}")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team update failed")
+
+
+
+def remove_user_id_from_team(user_id: str, team_id: str) -> str:
+    conn = get_db_connection()
+
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                DELETE FROM team_tokens
+                WHERE userId = %s AND teamId = %s""", (user_id, team_id))
+
+                return user_id
+    except Exception as e:
+        logger.error(f"Failed to remove user from team")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User removal from team failed")
 
 
 def get_all_teams() -> list[dict]:

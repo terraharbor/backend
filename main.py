@@ -411,11 +411,11 @@ async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
 
     data_dict = json.loads(body)
 
-    if data_dict.get('name') is None or data_dict.get('description') is None:
+    if data_dict.get('name') is None or data_dict.get('description') is None or data_dict.get('teamIds') is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
-        return update_project(int(project_id), data_dict['name'], data_dict['description'])
+        return update_project(int(project_id), data_dict['name'], data_dict['description'], data_dict['teamIds'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
 
@@ -463,11 +463,11 @@ async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
 
     data_dict = json.loads(body)
 
-    if data_dict.get('name') is None or data_dict.get('description') is None:
+    if data_dict.get('name') is None or data_dict.get('description') is None or data_dict.get('userIds') is None:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
-        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
+        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'], data_dict['userIds'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
 

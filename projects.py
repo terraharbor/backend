@@ -47,7 +47,7 @@ def get_project_for_project_id(project_id: str) -> list[dict]:
                 raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Project not found")
 
 
-def update_project(project_id: int, name: str, desc: str) -> dict:
+def update_project(project_id: int, name: str, desc: str, team_ids: list) -> dict:
     conn = get_db_connection()
     try:
         with conn:
@@ -62,6 +62,24 @@ def update_project(project_id: int, name: str, desc: str) -> dict:
                 FROM projects
                 WHERE id = %s""", (project_id,))
 
+                # Get the difference between DB teams and query teams
+                cur.execute("""
+                SELECT team_id
+                FROM project_teams
+                WHERE project_id = %s""", (project_id,))
+
+                project_rows = cur.fetchall()
+
+                if project_rows:
+                    for row in project_rows:
+                        tid = row[0]
+                        if tid in team_ids:
+                            team_ids.remove(remove_team_id_from_project(tid, str(project_id)))
+
+                # Add unregistered teams
+                for to_reg_id in team_ids:
+                    add_team_to_project(to_reg_id, str(project_id))
+
                 row = cur.fetchone()
 
                 return {
@@ -73,7 +91,41 @@ def update_project(project_id: int, name: str, desc: str) -> dict:
                 }
     except Exception as ex:
         logger.error(f"Exception while updating project: {ex}")
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User to update not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Project to update not found")
+
+
+def remove_team_id_from_project(team_id: str, project_id: str) -> str:
+    conn = get_db_connection()
+
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                            DELETE FROM project_teams
+                            WHERE team_id = %s AND project_id = %s""", (team_id, project_id))
+
+                return team_id
+    except Exception as e:
+        logger.error(f"Failed to remove team from project")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team removal from project failed")
+
+
+def add_team_to_project(team_id: str, project_id: str) -> None:
+    try:
+        conn = get_db_connection()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                            INSERT INTO project_teams VALUES (2, %s, %s)""",
+                            (team_id, project_id))
+    except Exception as e:
+        logger.error(e)
+        raise RuntimeError(f"Error on adding team of ID {team_id} to project")
+    finally:
+        try:
+            conn.close()
+        except Exception as e:
+            logger.error("Failed to close database connection")
 
 
 def get_projects_for_user_id(user_id: str) -> list[dict]:
