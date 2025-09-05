@@ -57,11 +57,6 @@ def update_project(project_id: int, name: str, desc: str, team_ids: list) -> dic
                 SET name = %s, description = %s 
                 WHERE id = %s""", (name, desc, project_id))
 
-                cur.execute("""
-                SELECT created_at
-                FROM projects
-                WHERE id = %s""", (project_id,))
-
                 # Get the difference between DB teams and query teams
                 cur.execute("""
                 SELECT team_id
@@ -80,13 +75,18 @@ def update_project(project_id: int, name: str, desc: str, team_ids: list) -> dic
                 for to_reg_id in team_ids:
                     add_team_to_project(to_reg_id, str(project_id))
 
+                cur.execute("""
+                            SELECT created_at
+                            FROM projects
+                            WHERE id = %s""", (project_id,))
+
                 row = cur.fetchone()
 
                 return {
                     "id": project_id,
                     "name": name,
                     "description": desc,
-                    "lastUpdated": row[0],
+                    "lastUpdated": row[0] if row else None,
                     "teamIds": get_teams_ids_of_project_id(str(project_id))
                 }
     except Exception as ex:
