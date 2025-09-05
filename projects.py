@@ -140,7 +140,7 @@ def add_team_to_project(team_id: str, project_id: str) -> None:
 
                 if team_id not in team_ids:
                     cur.execute("""
-                                INSERT INTO project_teams VALUES (2, %s, %s)""",
+                                INSERT INTO project_teams(team_id, project_id) VALUES (%s, %s)""",
                                 (team_id, project_id))
     except Exception as e:
         logger.error(e)
