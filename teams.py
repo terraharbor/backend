@@ -78,9 +78,7 @@ def get_teams_for_user(user_id: int) -> list[dict]:
                                 "userIds": get_users_ids_for_team(team_id)})
 
                 return out
-            else:
-                logger.error(f"Error when fetching teams for user ID {user_id}")
-                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team not found")
+    return []
 
 
 def get_teams_for_project_id(project_id: str) -> list[dict]:
@@ -214,5 +212,4 @@ def get_projects_for_team_id(team_id: int) -> list[dict]:
             rows = cur.fetchall()
             if rows:
                 return generate_project_entities(rows)
-            else:
-                return []
+    return []
