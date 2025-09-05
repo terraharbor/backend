@@ -180,16 +180,19 @@ async def get_state(
 ) -> FileResponse:
     if version is not None:
         path = _versioned_state_path(project_id, state_name, version)
+        # Versioned files: check filesystem directly
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="State version not found")
+        return FileResponse(path, media_type="application/octet-stream")
     else:
         path = _latest_state_path(project_id, state_name)
-
-    state_path = get_state_from_db(path, project_id)
-
-    if state_path:
-        if not os.path.exists(state_path):
-            raise HTTPException(status_code=404, detail="State not found in filesystem")
-        return FileResponse(path, media_type="application/octet-stream")
-    raise HTTPException(status_code=404, detail="State not found in filesystem")
+        # Latest file: check database first, then filesystem
+        state_path = get_state_from_db(path, project_id)
+        if state_path and os.path.exists(state_path):
+            return FileResponse(path, media_type="application/octet-stream")
+        elif os.path.exists(path):
+            return FileResponse(path, media_type="application/octet-stream")
+        raise HTTPException(status_code=404, detail="State not found")
 
 
 @app.get("/states/{project_id}/{state_name}", tags=["auth"])
@@ -398,8 +401,12 @@ async def delete_state(
                 if os.path.exists(latest_path):
                     os.remove(latest_path)
 
-            # Clean up the DB
-            delete_state_from_db(path, project_id)
+            # Clean up the DB (only for files that are registered)
+            try:
+                delete_state_from_db(path, project_id)
+            except HTTPException:
+                # Versioned files might not be in DB, that's ok
+                logger.info(f"Versioned file {path} not in DB, skipping DB cleanup")
 
         else:
             raise HTTPException(status_code=404, detail="State version not found")
