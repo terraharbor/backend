@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.1.11](https://github.com/terraharbor/backend/compare/v0.1.10...v0.1.11) (2025-09-05)
+
+
+### Features
+
+* access to projects now need team auth ([249cdc6](https://github.com/terraharbor/backend/commit/249cdc674aedc60ac54484653996e2fd72dc1d14))
+* access to projects now need team auth ([17f234a](https://github.com/terraharbor/backend/commit/17f234a96152f836511def88f19ff80871318aaa))
+* merge pull request [#90](https://github.com/terraharbor/backend/issues/90) from terraharbor/fix/PATCH/projects/project_id ([dd80406](https://github.com/terraharbor/backend/commit/dd80406e47fa46f4e5f64490092790121d4a08fd))
+* merge pull request [#93](https://github.com/terraharbor/backend/issues/93) from terraharbor/fix/logs ([d69e665](https://github.com/terraharbor/backend/commit/d69e665eb8dc4172888bc58743f4994d69122629))
+
+
+### Bug Fixes
+
+* compatibility with frontend ([aa917e9](https://github.com/terraharbor/backend/commit/aa917e9edb47465767e2f70776c02f61dd698858))
+* fixed team number limitation ([dd80406](https://github.com/terraharbor/backend/commit/dd80406e47fa46f4e5f64490092790121d4a08fd))
+* fixed team number limitation ([ab7c1b9](https://github.com/terraharbor/backend/commit/ab7c1b99542952a3274f3cadd49cc8601500c1c5))
+* removed logs displaying secrets ([d69e665](https://github.com/terraharbor/backend/commit/d69e665eb8dc4172888bc58743f4994d69122629))
+* removed logs displaying secrets ([deb36b2](https://github.com/terraharbor/backend/commit/deb36b24704fb9cb866703b301f9e4042338aba4))
+* repaired token endpoint post ([74342da](https://github.com/terraharbor/backend/commit/74342daaeb8c788151f200ff06cc7ade06f3bc7a))
+* repaired token endpoint post ([b581632](https://github.com/terraharbor/backend/commit/b5816322225f19545a61304e8b215720042d5c03))
+
+
+### Reverts
+
+* "feat: access to projects now need team auth" ([9fe45db](https://github.com/terraharbor/backend/commit/9fe45dbf15763abee24f3a2e88d16f89db345fb9))
+
+
+### Miscellaneous Chores
+
+* merge pull request [#94](https://github.com/terraharbor/backend/issues/94) from terraharbor/add/small_fixes_token_endpoints ([74342da](https://github.com/terraharbor/backend/commit/74342daaeb8c788151f200ff06cc7ade06f3bc7a))
+* merge pull request [#95](https://github.com/terraharbor/backend/issues/95) from terraharbor/fix/front_compatibility ([805ffc9](https://github.com/terraharbor/backend/commit/805ffc90f2d84b1d259ea505ba4b9b8cfcef6344))
+* merge pull request [#96](https://github.com/terraharbor/backend/issues/96) from terraharbor/add/user-access-through-team ([249cdc6](https://github.com/terraharbor/backend/commit/249cdc674aedc60ac54484653996e2fd72dc1d14))
+
+
+### Code Refactoring
+
+* update badges ([b80ba93](https://github.com/terraharbor/backend/commit/b80ba93f972dad8f3b659f8d5ef127f871f0540f))
+
 ## [0.1.10](https://github.com/terraharbor/backend/compare/v0.1.9...v0.1.10) (2025-09-05)
 
 
