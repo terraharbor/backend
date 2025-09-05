@@ -192,9 +192,9 @@ async def get_state(
     raise HTTPException(status_code=404, detail="State not found in filesystem")
 
 
-@app.get("/states/{project}/{state_name}", tags=["auth"])
+@app.get("/states/{project_id}/{state_name}", tags=["auth"])
 async def get_states(
-    project: str,
+    project_id: int,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)]
     ) -> list:
@@ -202,7 +202,7 @@ async def get_states(
     Endpoint to retrieve all the existing versions of a state
     """
 
-    path = _state_dir(project, state_name)
+    path = _state_dir(project_id, state_name)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="State not found")
 
@@ -216,7 +216,10 @@ async def get_states(
         meta_path = os.path.join(path, f"{version}.tfstate.meta")
         if os.path.exists(meta_path):
             with open(meta_path, "r") as meta_file:
-                meta = json.load(meta_file)
+                try:
+                    meta = json.load(meta_file)
+                except Exception:
+                    meta = {}
             result.append({
                 "version": version,
                 "created by": meta.get("uploaded_by"),
