@@ -195,19 +195,19 @@ async def put_state(
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
-    # Get the version from the query parameter or the JSON body
+    # Get the serial from the query parameter or the JSON body
 
     try:
         json_body = json.loads(body)
-        version = json_body.get("version")
+        serial = json_body.get("serial")
     except Exception:
             pass
-    if version is None:
-        raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
+    if serial is None:
+        raise HTTPException(status_code=400, detail="Missing state serial")
     if ID:
         if not check_lock_id(project, state_name, ID):
             raise HTTPException(status_code=409, detail="State is locked with a different ID")
-    version_path = _versioned_state_path(project, state_name, version)
+    version_path = _versioned_state_path(project, state_name, serial)
     latest_path = _latest_state_path(project, state_name)
     with open(version_path, "wb") as f:
         f.write(body)
