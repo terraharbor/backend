@@ -1,5 +1,173 @@
 # Changelog
 
+## [0.1.10](https://github.com/terraharbor/backend/compare/v0.1.9...v0.1.10) (2025-09-05)
+
+
+### Features
+
+* adapted return values of endpoint data fetcher ([2d77366](https://github.com/terraharbor/backend/commit/2d7736676917a658a82df9b3f998fc131bc59e24))
+* adapted return values of endpoint data fetcher ([ced9a5d](https://github.com/terraharbor/backend/commit/ced9a5d22014792bacf6863c4fecb0429759eb51))
+* adapted User endpoints ([cf27313](https://github.com/terraharbor/backend/commit/cf2731306e452b2ea268619e7d4eb1da50b468f9))
+* adapted User endpoints ([cf42cad](https://github.com/terraharbor/backend/commit/cf42cad7366e818f8815a6201bce4e643f38a3c0))
+* add project token management ([6443231](https://github.com/terraharbor/backend/commit/6443231278933fd6abb9f0f70025c42bb80387d5))
+* add project token management ([cada6a4](https://github.com/terraharbor/backend/commit/cada6a4e919ecc8fbf218737e91f2d050e6ee93d))
+* add project token management ([0bfdcbc](https://github.com/terraharbor/backend/commit/0bfdcbcb297c3bc0f5a96ee1991ceefb9574eb8c))
+* added authorisation process for users and projects ([13303a4](https://github.com/terraharbor/backend/commit/13303a4ac8e2640ddca86607e4668314bf8b1ba1))
+* added authorisation process for users and projects ([768fd77](https://github.com/terraharbor/backend/commit/768fd776c3d425bc744775a1aa65dc29bcdecbb3))
+* added authorisation process for users and projects ([db0ece3](https://github.com/terraharbor/backend/commit/db0ece31924114d5a7f3059daf7322a014217f56))
+* added project_tokens endpoint ([5fb9d7b](https://github.com/terraharbor/backend/commit/5fb9d7bc42532d8a44632db9d7b52f59dbb7228b))
+* added project_tokens endpoint ([582d686](https://github.com/terraharbor/backend/commit/582d6869810baf1f8f89f5a77fdfaf798d45dc54))
+* added state management in DB, plus quick fix on project_id_get ([281ad65](https://github.com/terraharbor/backend/commit/281ad65cc956f8875691a2e5f852c0d03937014d))
+* added state management in DB, plus quick fix on project_id_get ([a4d6f82](https://github.com/terraharbor/backend/commit/a4d6f8261f2ecbfc4eb15741a2ffc6f1e360284f))
+* added teams management methods ([ba5e661](https://github.com/terraharbor/backend/commit/ba5e66196173677017f57d6e9d3df6bdd66663f9))
+* added teams management methods ([f682daa](https://github.com/terraharbor/backend/commit/f682daa4baf731eb400610e5f358457d39e8f69f))
+* added teams management methods ([e4b9802](https://github.com/terraharbor/backend/commit/e4b98026567f0e60f13732f0361fcda15dba9129))
+* added token endpoints ([82ce58f](https://github.com/terraharbor/backend/commit/82ce58f1cbca5566f9ceb51f6d1b0bce4f6e55ee))
+* added token endpoints ([b0fd8d0](https://github.com/terraharbor/backend/commit/b0fd8d07e3f7a5c61606472b33d5a1f976d34ade))
+* added user token mgmnt, with login-check ([c572ddf](https://github.com/terraharbor/backend/commit/c572ddf900c5a6addebbbd6e0a045e27217f103a))
+* adding project management methods ([3885a56](https://github.com/terraharbor/backend/commit/3885a56f7027b63c8d8efe4ffb649888627ea679))
+* adding project management methods ([7448ae6](https://github.com/terraharbor/backend/commit/7448ae64049620e9ed75e86e8a960e2a99427d02))
+* adding project management methods ([6939d16](https://github.com/terraharbor/backend/commit/6939d16e609069f2d63ab7a26bf9152d46d23bc1))
+* all states versions endpoint clean ([2ed8200](https://github.com/terraharbor/backend/commit/2ed82007445e7e5d3cf0c4f9c3986b9c9e7d8942))
+* all-get for projectID ([1649eef](https://github.com/terraharbor/backend/commit/1649eef7d34f19d0d6775e2b28c8f39825c7bbb1))
+* create returns new entity ([1e75b3d](https://github.com/terraharbor/backend/commit/1e75b3d0922a2bfc721da8354103c37f8527544e))
+* first user is admin ([5f201da](https://github.com/terraharbor/backend/commit/5f201daf833ffc61b676ca4c823b39262503b802))
+* first user is admin ([fe54aa4](https://github.com/terraharbor/backend/commit/fe54aa4823ab2f798f13580a118d1c061b7bc3d1))
+* implemented lock ID check ([6c3fd91](https://github.com/terraharbor/backend/commit/6c3fd91bf2a86fcacc00bb1e4ba0a6213931deab))
+* Implemented users' endpoint ([3ed4db4](https://github.com/terraharbor/backend/commit/3ed4db494317c4dc12c629adbceb4749bf20bfbc))
+* merge pull request [#81](https://github.com/terraharbor/backend/issues/81) from terraharbor/fix/fix_projects_teams_get ([4f46c47](https://github.com/terraharbor/backend/commit/4f46c47bbee23c644962dcc3e9c62ed7f03c1889))
+* merge pull request [#86](https://github.com/terraharbor/backend/issues/86) from terraharbor/feat/all_states_versions_endpoint_clean ([2ed8200](https://github.com/terraharbor/backend/commit/2ed82007445e7e5d3cf0c4f9c3986b9c9e7d8942))
+* progress ([758ab6a](https://github.com/terraharbor/backend/commit/758ab6abe8b577516757080c822b754ded5c1a13))
+* progress ([221c700](https://github.com/terraharbor/backend/commit/221c700b1d52d6cb0e72392d2505e2f0b4d3d719))
+* re-implemented all_state_versions endpoint ([bc39381](https://github.com/terraharbor/backend/commit/bc393814a633c1078b8f140e19321384d29d8976))
+* state status endpoint ([30defd4](https://github.com/terraharbor/backend/commit/30defd4ee5d23b1f96cb7901021c8ad86b7031bb))
+* sync frontend-backend on teams ([c65878b](https://github.com/terraharbor/backend/commit/c65878b0b7052d9736d97c3cd07c77e17b20e8e6))
+* sync frontend-backend on teams ([8bb1091](https://github.com/terraharbor/backend/commit/8bb10913b72acec4580ab628f7ca88d756af83b0))
+* sync project endpoints ([b8f73e2](https://github.com/terraharbor/backend/commit/b8f73e23df8dc3417e1aa5e5b04615d5359d0f17))
+* sync project endpoints ([040d11e](https://github.com/terraharbor/backend/commit/040d11e58f438846c0dedacea1d672bf59a51abc))
+* use backend to test Terraform ([3ecc6e3](https://github.com/terraharbor/backend/commit/3ecc6e35517956ee6ff55c0914f4d628ad2a7060))
+
+
+### Bug Fixes
+
+* added guard with user updating ([8941fbe](https://github.com/terraharbor/backend/commit/8941fbe2c1db3a83db1d5731e1b43fdab2e0a678))
+* added guard with user updating ([b02db79](https://github.com/terraharbor/backend/commit/b02db79421cdf162a54c11567aa5dee9f25428d9))
+* added User authentication for project token endpoints ([b37d6d8](https://github.com/terraharbor/backend/commit/b37d6d81688784a312b8c833393bde6d9db3c02f))
+* added User authentication for project token endpoints ([6495066](https://github.com/terraharbor/backend/commit/6495066167d09dab8d798e66e1a0f2064c1da450))
+* converted admin flag type in db ([b3e1698](https://github.com/terraharbor/backend/commit/b3e169896898c5b4ba328eb4bdd7d8e5eb001b15))
+* converted admin flag type in db ([e8dfa76](https://github.com/terraharbor/backend/commit/e8dfa76f6c815dbfad6d2d1ab342ff74f0c929f2))
+* correct dependencies and fix string conversion ([fa6378a](https://github.com/terraharbor/backend/commit/fa6378a3e8544022fc9ae691f253290824596318))
+* disable commit of .terraform folders ([098352d](https://github.com/terraharbor/backend/commit/098352dbb836a76c1eda7585e3b195479c9258b6))
+* enhanced /me and fixed outputs ([0c126e4](https://github.com/terraharbor/backend/commit/0c126e4592ee3b7bd5808f014cabc9b582e595e4))
+* enhanced /me and fixed outputs ([4f46c47](https://github.com/terraharbor/backend/commit/4f46c47bbee23c644962dcc3e9c62ed7f03c1889))
+* enhanced /me and fixed outputs ([56beb7e](https://github.com/terraharbor/backend/commit/56beb7e28f5be508ef2ae38133a59dcf58612577))
+* fix for custom methods ([c0a2f81](https://github.com/terraharbor/backend/commit/c0a2f815edcd5d031201aa1dfe7191f8f1c1e6e8))
+* fixed response for update user on invalid flag ([ca8c561](https://github.com/terraharbor/backend/commit/ca8c561c6b10cf70e4cf2238df209ef73ce076ce))
+* fixed response for update user on invalid flag ([27f489f](https://github.com/terraharbor/backend/commit/27f489f2cb594e8c30cf510f303f9f4e35423ef3))
+* fixed runtime error when state does not exit ([4b42b8f](https://github.com/terraharbor/backend/commit/4b42b8f74c05ea1f52d90fcd7b4009cc4651eab1))
+* fixed typo ([fc28fd7](https://github.com/terraharbor/backend/commit/fc28fd70617a9df4d48848a3891fde1115ae9762))
+* fixed typo ([1f2550d](https://github.com/terraharbor/backend/commit/1f2550d87fad33cd796cc34e9f7013dbc8d9658e))
+* fixed update methods ([24c9737](https://github.com/terraharbor/backend/commit/24c9737d9da9ec118d673921da2afa5be1ddbb3a))
+* fixed update methods ([46d3e7e](https://github.com/terraharbor/backend/commit/46d3e7ed6a766a43f5357ceb094f4f652beb26b6))
+* fixed update methods ([cc5a74c](https://github.com/terraharbor/backend/commit/cc5a74c077723fa50ff657ca9a5ea468dbdfccf5))
+* fixed update methods ([5a4d05b](https://github.com/terraharbor/backend/commit/5a4d05b833652d558cb7f16d6bf223460513e7cc))
+* http fixes ([8150aeb](https://github.com/terraharbor/backend/commit/8150aeb2514d606ccf9201bbe74e4a62ded29dd8))
+* http fixes ([ca6c798](https://github.com/terraharbor/backend/commit/ca6c798fd02dc7b282b5cd586db13d5ac29a6441))
+* key fixes ([28c6774](https://github.com/terraharbor/backend/commit/28c67747aab1ecc319e4a7cb7bb9f2fca313365b))
+* key fixes ([0b925e7](https://github.com/terraharbor/backend/commit/0b925e71165cd5b9d012da54921f892edb6723dc))
+* key fixes ([9ad1827](https://github.com/terraharbor/backend/commit/9ad18274ddd64fffbfabc6f3a42a8005864c4cd2))
+* now endpoint you send elements you want to be in team or project ([2846b0d](https://github.com/terraharbor/backend/commit/2846b0d79e0c236d365008f7a44f4bc914bf87c7))
+* null state_path when no state pushed before ([d465cc6](https://github.com/terraharbor/backend/commit/d465cc6435f99e0e6cfcbe2c0fa38417c870ef7a))
+* patched glitch user patching ([f4af403](https://github.com/terraharbor/backend/commit/f4af4037856b1a5cc7eb53e14fb06c3b26817f00))
+* patched glitch user patching ([3d1aa9b](https://github.com/terraharbor/backend/commit/3d1aa9bf290d40f574c100bc9858637f290feec3))
+* patched glitch with /users ([d50f8a6](https://github.com/terraharbor/backend/commit/d50f8a6717b08e72d1240e528a411e5b4b031dfc))
+* patched glitch with /users ([70acdb2](https://github.com/terraharbor/backend/commit/70acdb202576b851cebbb3dcb8b397c9fb22f0f5))
+* project_id from str to int ([2b2effc](https://github.com/terraharbor/backend/commit/2b2effcf6eb85cf60b383180f25a101bdb5331a5))
+* removed accidental lines ([e88121d](https://github.com/terraharbor/backend/commit/e88121d9bd6ceeee7d2547e4fd1c92be46cbe4be))
+* removed accidental lines ([877dbda](https://github.com/terraharbor/backend/commit/877dbda442a51b50ca8392bd944487ea84ca4ecd))
+* Removed logged in check for basic auth requests ([410f9c6](https://github.com/terraharbor/backend/commit/410f9c6ece4af4bd7dbb10c33c7b0e481414a1eb))
+* return 404 instead of 500 ([3d1acab](https://github.com/terraharbor/backend/commit/3d1acabfab2ffa3e106bfc745ce0d560cf17c5ea))
+* return 404 when file not found ([26daf54](https://github.com/terraharbor/backend/commit/26daf54e7c7843784f340be8ab528bb806792f67))
+* small adjustments on typing and returns ([5db441b](https://github.com/terraharbor/backend/commit/5db441b362ffbf67f5bf6d4b37e0c07b3ceb26e1))
+* small adjustments on typing and returns ([5c5f231](https://github.com/terraharbor/backend/commit/5c5f231a7531579a245080db01c492f695f56f9d))
+* small adjustments on typing and returns ([6900650](https://github.com/terraharbor/backend/commit/6900650836bae0a2f82789b18b11727734730c95))
+* small issues ([2d718da](https://github.com/terraharbor/backend/commit/2d718da39aecad703e2194d8591060c36d945753))
+* small issues ([4b1334e](https://github.com/terraharbor/backend/commit/4b1334e868da343dda9da13af278869fa47adf34))
+* small issues ([2d24745](https://github.com/terraharbor/backend/commit/2d24745676239d10142b185222b5c096d26d62f1))
+* small issues ([bd06348](https://github.com/terraharbor/backend/commit/bd063482008c2721da9d0bef2cec28171968f044))
+* small issues ([725f37c](https://github.com/terraharbor/backend/commit/725f37cee6dd800413226a774f6c929768389402))
+* small issues ([2bc8739](https://github.com/terraharbor/backend/commit/2bc873934298cf6eef097bd717f9ba67c7ab61ba))
+* small issues ([cabc03a](https://github.com/terraharbor/backend/commit/cabc03a807fedc8d80c38dda8d273220124aa748))
+* small issues ([2e446fb](https://github.com/terraharbor/backend/commit/2e446fbb85bb7111e5b7e6d621aadb5d6867ea77))
+* states' version takes from serial keyword ([#82](https://github.com/terraharbor/backend/issues/82)) ([767f9d2](https://github.com/terraharbor/backend/commit/767f9d239fc917d33ee9734e1bd4b761d89bfb59))
+* still fix some more casts ([d824114](https://github.com/terraharbor/backend/commit/d8241145a2a4e9656dbf12f1630b8d62c2faf59d))
+* tweaks ([a66466b](https://github.com/terraharbor/backend/commit/a66466bccec76bc194bef58b568d1a328cb6a693))
+* tweaks ([2f7461c](https://github.com/terraharbor/backend/commit/2f7461c4b616f4afb8d6e1a2b4475467a6b64e5d))
+* tweaks ([cfaa190](https://github.com/terraharbor/backend/commit/cfaa1908ef108595fb6a9bdf4425f839ae920692))
+* tweaks ([b3397e1](https://github.com/terraharbor/backend/commit/b3397e12a8cbd9d47308e3ec2cdd615007d13446))
+* typo ([1a81c1a](https://github.com/terraharbor/backend/commit/1a81c1ad5d7b27bbc2016f46c81e8af97ff16d86))
+* undefined variables ([393a73f](https://github.com/terraharbor/backend/commit/393a73f6e2baa3bdbb2b2379187607c8d1a7b07c))
+* use project_id instead of project_name for LOCKs and UNLOCks ([71362ca](https://github.com/terraharbor/backend/commit/71362ca63e9785b2553a797cda5fa46f6850f01b))
+* var name ([a774aa4](https://github.com/terraharbor/backend/commit/a774aa46ae9551a30460bbe74d2cb56018468080))
+* var name ([6f83e03](https://github.com/terraharbor/backend/commit/6f83e03901252226d6cdfe159de043ab21685cdc))
+* various glitches ([ffac8eb](https://github.com/terraharbor/backend/commit/ffac8eb6b1956c122be111cadeeb489c6a42433b))
+* various glitches ([9d15416](https://github.com/terraharbor/backend/commit/9d15416450501ae13b162f249a461fd3429e0a7e))
+* wrong http status ([96117b2](https://github.com/terraharbor/backend/commit/96117b2a2e6fba2ae37f3d813ef821c2ea6729c4))
+* wrong http status ([941285a](https://github.com/terraharbor/backend/commit/941285a6314f26d82579291cd7fa0af97ca9c945))
+
+
+### Documentation
+
+* added docs on functions ([14b762a](https://github.com/terraharbor/backend/commit/14b762ac37c1d10832eb472a55c4001193ed7137))
+* improve the README and add badges ([ca3b97d](https://github.com/terraharbor/backend/commit/ca3b97d248a6a72d8b4663fed32f8ca05bd87688))
+* improve the README and add badges ([66064f2](https://github.com/terraharbor/backend/commit/66064f29c00dc84cad604e3a8230ad16074ff39b))
+* improve the README and add badges ([ee4b3c2](https://github.com/terraharbor/backend/commit/ee4b3c2995eee3ab4f8021825ee1266b5b930f84))
+* remove extra whitespace ([55aaa76](https://github.com/terraharbor/backend/commit/55aaa76b9fa45c37670fca51680ef62cae66b773))
+* remove extra whitespace ([cf193b0](https://github.com/terraharbor/backend/commit/cf193b0548e9e82cd2ac30f9267c1be56e072081))
+* reword section header ([8afad75](https://github.com/terraharbor/backend/commit/8afad7511b41bd7771edee4133731d74f25309ba))
+* reword section header ([957207d](https://github.com/terraharbor/backend/commit/957207d6a328d844ce5a17ea745398f068b1d28a))
+* updated doc for python unit tests ([9277531](https://github.com/terraharbor/backend/commit/9277531cb2c20336ef44dfea760298ae9309a81c))
+* updated docs ([8b55817](https://github.com/terraharbor/backend/commit/8b5581749f26ba8da6692f1142e68c891c9372c6))
+
+
+### Miscellaneous Chores
+
+* commit the .env file ([9214d17](https://github.com/terraharbor/backend/commit/9214d17784958dd6a952bc9a11806ca5788ef94c))
+* Merge pull request [#61](https://github.com/terraharbor/backend/issues/61) from terraharbor/add/user-token-management-2 ([c572ddf](https://github.com/terraharbor/backend/commit/c572ddf900c5a6addebbbd6e0a045e27217f103a))
+* merge pull request [#71](https://github.com/terraharbor/backend/issues/71) from terraharbor/test/basic_pyhton_unit_tests ([414b15e](https://github.com/terraharbor/backend/commit/414b15eb0b8dbfdb6592cc6ec2376a6599b56c0a))
+* merge pull request [#87](https://github.com/terraharbor/backend/issues/87) from terraharbor/fix/update_teams_projects ([38bbfef](https://github.com/terraharbor/backend/commit/38bbfefcd1521f5ddc0de99cf21a09ac50d9561c))
+* merged main ([950c359](https://github.com/terraharbor/backend/commit/950c35982e2876c1bc580a9e73bec831c420bde8))
+* merged main ([b5b348d](https://github.com/terraharbor/backend/commit/b5b348dad0102101e23854296e5d4112a5badb7b))
+* merged main ([5aa0fc2](https://github.com/terraharbor/backend/commit/5aa0fc2a1c67e79fd3355a878f16c53e11b1cc24))
+* merged main ([45f3562](https://github.com/terraharbor/backend/commit/45f3562faefb83e99b96a8be74bfeff98ffae4b7))
+* merged main ([e80c703](https://github.com/terraharbor/backend/commit/e80c70324a61d9154e92d525dc24c6049b7f4c5b))
+* pull request [#70](https://github.com/terraharbor/backend/issues/70) from terraharbor/add/project-token-management-clean ([cada6a4](https://github.com/terraharbor/backend/commit/cada6a4e919ecc8fbf218737e91f2d050e6ee93d))
+* release 0.1.8 ([933188e](https://github.com/terraharbor/backend/commit/933188e8fb1f4c4fb279c6000e3576c99a326c60))
+* release 0.1.9 ([#67](https://github.com/terraharbor/backend/issues/67)) ([796914d](https://github.com/terraharbor/backend/commit/796914d87cac0856c95a344ed200639ed1fc00fa))
+* solve conflicts from 'main' into test/basic_pyhton_unit_tests ([d57274a](https://github.com/terraharbor/backend/commit/d57274a65fd7835ae1f4881c24cea30b4c962307))
+
+
+### Code Refactoring
+
+* adapt get all versions ([#89](https://github.com/terraharbor/backend/issues/89)) ([8789736](https://github.com/terraharbor/backend/commit/87897363379bacef6c3f83d1dbd0895a5dac63db))
+* remove debug output ([cab9d90](https://github.com/terraharbor/backend/commit/cab9d90dee58ae02e9a2f42a9e8350554fca474b))
+* rename file with typo ([e413a1b](https://github.com/terraharbor/backend/commit/e413a1b97575d381526e4fc2e7c06cb7f0b65e81))
+* updated gitignroe and removed cache ([1f02afa](https://github.com/terraharbor/backend/commit/1f02afac1990e442b5c95330ca4b7e2881e8ebc0))
+
+
+### Tests
+
+* add beginning of tests ([ea1be54](https://github.com/terraharbor/backend/commit/ea1be54b0e8ac0fce22ef85ffd83d17ce2cc60be))
+* fix terraform tests to use new endpoints ([e9d9fe8](https://github.com/terraharbor/backend/commit/e9d9fe86fd796a9f9b7bd9c225cae27a5df99f67))
+* implemented basic unit tests ([1e8ed0c](https://github.com/terraharbor/backend/commit/1e8ed0c1ff70b4ac90edd6d1b8448a9ae6151d5a))
+
+
+### Continuous Integration
+
+* add Terraform steps ([617981f](https://github.com/terraharbor/backend/commit/617981fda20cc54bc57bdc95be2f7776d16f70c4))
+* add test with steps that start the docker compose ([6464fc1](https://github.com/terraharbor/backend/commit/6464fc1ab4df9a222749834bcd4fd664cb72f377))
+* add workflow to run unitary tests ([ae44436](https://github.com/terraharbor/backend/commit/ae44436f5912c24ce4e250d81671fb4a6811a17e))
+
 ## [0.1.9](https://github.com/terraharbor/backend/compare/v0.1.8...v0.1.9) (2025-09-04)
 
 
