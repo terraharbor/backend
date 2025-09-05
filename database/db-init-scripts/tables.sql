@@ -60,6 +60,5 @@ CREATE TABLE IF NOT EXISTS files (
     id SERIAL PRIMARY KEY,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     file_path VARCHAR(255) NOT NULL,
-    file_size INTEGER NOT NULL,
     uploaded_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

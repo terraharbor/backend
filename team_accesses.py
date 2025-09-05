@@ -186,7 +186,7 @@ def add_access(user_id: str, team_id: str) -> str:
                 token = token_hex(32)
                 cur.execute("""
                 INSERT INTO team_tokens VALUES (%s, %s, %s, B'%s', B'0', B'0', B'0', B'0')""",
-                            (token, user_id, team_id, 1 if auto_admin else 0))
+                            (token, team_id, user_id, 1 if auto_admin else 0))
                 return token
     except Exception as e:
         logger.error(e)

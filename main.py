@@ -15,12 +15,15 @@ import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+
+from files_table_handler import write_state_path_to_db, get_state_from_db, delete_state_from_db, \
+    get_states_from_db_for_project_id
 from lock_helpers import check_lock_id
 from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
 from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
-    get_accessible_projects_for_user_id, get_all_project_tokens
+    get_accessible_projects_for_user_id, get_all_project_tokens, delete_project_token
 
 from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
     delete_project, create_project
@@ -168,20 +171,49 @@ async def delete_user_by_id(
 
 
 # GET  /state/{project}/{state_name}
-@app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])
+@app.get("/state/{project_id}/{state_name}", response_class=FileResponse, tags=["auth"])
 async def get_state(
-    project: str,
+    project_id: str,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> FileResponse:
     if version is not None:
-        path = _versioned_state_path(project, state_name, version)
+        path = _versioned_state_path(project_id, state_name, version)
     else:
-        path = _latest_state_path(project, state_name)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="State not found")
-    return FileResponse(path, media_type="application/octet-stream")
+        path = _latest_state_path(project_id, state_name)
+
+    state_path = get_state_from_db(path, project_id)
+
+    if state_path:
+        if not os.path.exists(state_path):
+            raise HTTPException(status_code=404, detail="State not found in filesystem")
+        return FileResponse(path, media_type="application/octet-stream")
+    raise HTTPException(status_code=404, detail="State not found in filesystem")
+
+
+@app.get("/state/{project_id}")
+async def get_states(
+        project_id: str,
+        user: Annotated[User, Depends(get_auth_user)]
+) -> list[dict]:
+    return get_states_from_db_for_project_id(project_id)
+
+# GET /state/{project}/{state_name}/status
+@app.get("/state/{project}/{state_name}/status", response_model=dict, tags=["auth"])
+async def get_state_status(
+    project: str,
+    state_name: str,
+    user: Annotated[User, Depends(get_auth_user)],
+) -> dict:
+    """
+    Method to get the status of a state: if a state is locked or not.
+    """
+    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    if os.path.exists(lock_path):
+        with open(lock_path, "r") as f:
+            return {"status": "locked", **json.loads(f.read())}
+    return {"status": "unlocked", "locker": "", "timestamp": ""}
 
 # GET /state/{project}/{state_name}/status
 @app.get("/state/{project}/{state_name}/status", response_model=dict, tags=["auth"])
@@ -200,9 +232,9 @@ async def get_state_status(
     return {"status": "unlocked", "locker": "", "timestamp": ""}
 
 # POST /state/{project}/{state_name}
-@app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
+@app.post("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
 async def put_state(
-    project: str,
+    project_id: str,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)],
@@ -211,35 +243,39 @@ async def put_state(
     """
     Update the state for a specific project and state name.
     """
-    logger.info(f"PUT state called for project={project} state_name={state_name} user={user.username} ID={ID}")
+    logger.info(f"PUT state called for project={project_id} state_name={state_name} user={user.username} ID={ID}")
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
-    # Get the version from the query parameter or the JSON body
+    # Get the serial from the query parameter or the JSON body
 
     try:
         json_body = json.loads(body)
-        version = json_body.get("version")
+        serial = json_body.get("serial")
     except Exception:
             pass
-    if version is None:
-        raise HTTPException(status_code=400, detail="Missing state version (provide as query param ?version= or in body)")
+    if serial is None:
+        raise HTTPException(status_code=400, detail="Missing state serial")
     if ID:
-        if not check_lock_id(project, state_name, ID):
+        if not check_lock_id(project_id, state_name, ID):
             raise HTTPException(status_code=409, detail="State is locked with a different ID")
-    version_path = _versioned_state_path(project, state_name, version)
-    latest_path = _latest_state_path(project, state_name)
+    version_path = _versioned_state_path(project_id, state_name, serial)
+    latest_path = _latest_state_path(project_id, state_name)
     with open(version_path, "wb") as f:
         f.write(body)
     with open(latest_path, "wb") as f:
         f.write(body)
-    return Response(status_code=status.HTTP_200_OK)
+
+    # Write path to DB
+    file_id = write_state_path_to_db(latest_path, project_id)
+
+    return Response(status_code=status.HTTP_200_OK, content=f"State ID : {file_id}")
 
 
 # LOCK  /state/{project}
-@app.api_route("/state/{project}/{state_name}", methods=["LOCK"], response_class=Response, tags=["auth"])
+@app.api_route("/state/{project_id}/{state_name}", methods=["LOCK"], response_class=Response, tags=["auth"])
 async def lock_state(
-    project: str,
+    project_id: str,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
@@ -247,7 +283,7 @@ async def lock_state(
     """
     Locks the state for a specific project and state name.
     """
-    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
     body = (await request.body()).decode() or "{}"
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
@@ -261,10 +297,10 @@ async def lock_state(
         f.write(json.dumps(json_body))
     return Response(status_code=status.HTTP_200_OK)
 
-# UNLOCK /state/{project}
-@app.api_route("/state/{project}/{state_name}", methods=["UNLOCK"], response_class=Response, tags=["auth"])
+# UNLOCK /state/{project_id}
+@app.api_route("/state/{project_id}/{state_name}", methods=["UNLOCK"], response_class=Response, tags=["auth"])
 async def unlock_state(
-    project: str,
+    project_id: str,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
@@ -272,7 +308,7 @@ async def unlock_state(
     """
     Unlocks the state for a specific project and state name.
     """
-    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
         return Response(status_code=status.HTTP_200_OK)
@@ -290,9 +326,9 @@ async def unlock_state(
     return Response(status_code=status.HTTP_200_OK)
 
 # DELETE /state/{project}
-@app.delete("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
+@app.delete("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
 async def delete_state(
-    project: str,
+    project_id: str,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
@@ -303,10 +339,10 @@ async def delete_state(
     If no version is provided, all versions are deleted.
     """
 
-    state_dir = _state_dir(project, state_name)
+    state_dir = _state_dir(project_id, state_name)
     logger.info(f"State asked to delete: {state_dir}")
     if version is not None:
-        path = _versioned_state_path(project, state_name, version)
+        path = _versioned_state_path(project_id, state_name, version)
         if os.path.exists(path):
             logger.info(f"Deleting state version: {path}")
             os.remove(path)
@@ -314,22 +350,30 @@ async def delete_state(
             versions = [int(f.split('.tfstate')[0]) for f in os.listdir(state_dir) if f.endswith('.tfstate') and f != 'latest.tfstate']
             if versions:
                 last_version = max(versions)
-                last_path = _versioned_state_path(project, state_name, last_version)
-                latest_path = _latest_state_path(project, state_name)
+                last_path = _versioned_state_path(project_id, state_name, last_version)
+                latest_path = _latest_state_path(project_id, state_name)
                 with open(last_path, "rb") as src, open(latest_path, "wb") as dst:
                     dst.write(src.read())
             else:
                 # If there are no more versions, delete latest.tfstate
-                latest_path = _latest_state_path(project, state_name)
+                latest_path = _latest_state_path(project_id, state_name)
                 if os.path.exists(latest_path):
                     os.remove(latest_path)
+
+            # Clean up the DB
+            delete_state_from_db(path, project_id)
+
         else:
             raise HTTPException(status_code=404, detail="State version not found")
     else:
         # Remove all versions and latest
         for file in os.listdir(state_dir):
             logger.info(f"Deleting state file: {file}")
-            os.remove(os.path.join(state_dir, file))
+            path = os.path.join(state_dir, file)
+            os.remove(path)
+            # Clean up the DB
+            delete_state_from_db(path, project_id)
+
     return Response(status_code=status.HTTP_200_OK)
 
 
@@ -424,29 +468,37 @@ async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -
     return res
 
 
-@app.get("/token/all")
-async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> dict:
+@app.get("/tokens")
+async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
     """
     List all project tokens for the user.
     """
-    res = get_all_project_tokens(user.username)
+    if user.isAdmin:
+        return get_all_project_tokens()
+    else:
+        raise HTTPException(status_code=403, detail="Must be admin to fetch project tokens")
 
-    display = {}
+@app.delete("/tokens/{project_token_id}")
+async def delete_token_by_id(project_token_id: str, user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    if user.isAdmin:
+        return delete_project_token(project_token_id)
+    else:
+        raise HTTPException(status_code=403, detail="Must be admin to delete project tokens")
 
-    for name, res_in in res.items():
-        token_display = []
-        for project_token in res_in:
-            token_display.append({
-                "token": project_token.token,
-                "id": project_token.projectId,
-                "Name": project_token.projectName,
-                "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
-            })
-        display.update({
-            name: token_display
-        })
 
-    return display
+@app.post("/tokens")
+async def create_token(user: Annotated[User, Depends(get_auth_user)], request: Request) -> Response:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if data_dict.get('project_id') is None:
+        raise HTTPException(status_code=400, detail="Project ID missing")
+
+    if user.isAdmin:
+        return create_project_token(data_dict['project_id'])
+    else:
+        raise HTTPException(status_code=403, detail="Must be admin to create project tokens")
 
 
 @app.get("/projects")
@@ -470,11 +522,11 @@ async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
 
     data_dict = json.loads(body)
 
-    if data_dict.get('name') is None or data_dict.get('description') is None:
+    if data_dict.get('name') is None or data_dict.get('description') is None or data_dict.get('teamIds') is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
-        return update_project(int(project_id), data_dict['name'], data_dict['description'])
+        return update_project(int(project_id), data_dict['name'], data_dict['description'], data_dict['teamIds'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
 
@@ -509,11 +561,11 @@ async def get_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id:
     return get_team_for_team_id(int(team_id))
 
 @app.get("/teams/{team_id}/users")
-async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+async def get_users_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     return get_users_for_team_id(int(team_id))
 
-@app.get("/teams/{team_id}/projects}")
-async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict[str, str]]:
+@app.get("/teams/{team_id}/projects")
+async def get_projects_for_team(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> list[dict]:
     return get_projects_for_team_id(int(team_id))
 
 @app.patch("/teams/{team_id}")
@@ -522,11 +574,11 @@ async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
 
     data_dict = json.loads(body)
 
-    if data_dict.get('name') is None or data_dict.get('description') is None:
+    if data_dict.get('name') is None or data_dict.get('description') is None or data_dict.get('userIds') is None:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Incomplete form data")
 
     if user.isAdmin:
-        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
+        return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'], data_dict['userIds'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
 
@@ -551,3 +603,4 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
         return create_team(data_dict['name'], data_dict['description'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")
+
