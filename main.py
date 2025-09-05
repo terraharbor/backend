@@ -151,7 +151,7 @@ async def update_user_id(
 
     data_dict = json.loads(body)
 
-    if user.is_admin:
+    if user.isAdmin:
         return update_user(int(user_id), data_dict['username'], data_dict['isAdmin'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update user")
@@ -161,7 +161,7 @@ async def update_user_id(
 async def delete_user_by_id(
         user: Annotated[User, Depends(get_auth_user)],
         user_id: str) -> dict:
-    if user.is_admin:
+    if user.isAdmin:
         return delete_user(int(user_id))
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove user")
@@ -412,14 +412,14 @@ async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
 
     data_dict = json.loads(body)
 
-    if user.is_admin:
+    if user.isAdmin:
         return update_project(int(project_id), data_dict['name'], data_dict['description'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
 
 @app.delete("/projects/{project_id}")
 async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> dict:
-    if user.is_admin:
+    if user.isAdmin:
         return delete_project(int(project_id))
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove project")
@@ -427,7 +427,7 @@ async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
 
 @app.post("/projects")
 async def create_new_project(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
-    if user.is_admin:
+    if user.isAdmin:
         body = (await request.body()).decode() or "{}"
 
         data_dict = json.loads(body)
@@ -458,7 +458,7 @@ async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
 
     data_dict = json.loads(body)
 
-    if user.is_admin:
+    if user.isAdmin:
         return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
@@ -466,7 +466,7 @@ async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
 
 @app.delete("/teams/{team_id}")
 async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_id: str) -> dict:
-    if user.is_admin:
+    if user.isAdmin:
         return delete_team(int(team_id))
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to delete team")
@@ -477,7 +477,7 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
 
     data_dict = json.loads(body)
 
-    if user.is_admin:
+    if user.isAdmin:
         return create_team(data_dict['name'], data_dict['description'])
     else:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")
