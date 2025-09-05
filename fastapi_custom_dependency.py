@@ -1,3 +1,5 @@
+from fastapi import Header
+import base64
 from auth_functions import *
 
 

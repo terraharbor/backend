@@ -1,12 +1,11 @@
 from hashlib import sha512
-from fastapi import HTTPException, Header
+from fastapi import HTTPException
 from fastapi.security import HTTPBasicCredentials
 from user import User
 import psycopg2
 import os
 import time
 import logging
-import base64
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,6 +88,10 @@ def get_user(username: str) -> User | None:
     return None
 
 def get_authenticated_user(token: str = None, credentials: HTTPBasicCredentials = None) -> User | None:
+    """
+    Retrieve the authenticated user based on the provided token or credentials.
+    """
+
     logger.info(f"token: {token}")
     logger.info(f"credentials: {credentials}")
     if token:
@@ -194,6 +197,11 @@ def init_user_check() -> bool:
 
 
 def is_logged_in(user: User) -> str:
+    """
+    Check if the user is logged in by verifying the token in the DB.
+    If logged in, return the token, else return None.
+    """
+    
     try:
         conn = get_db_connection()
         with conn:
