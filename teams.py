@@ -239,16 +239,21 @@ def get_users_for_team_id(team_id: int) -> list[dict]:
 def get_projects_for_team_id(team_id: int) -> list[dict]:
     conn = get_db_connection()
 
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-            SELECT p.name, p.id, p.description, f.uploaded_at
-            FROM projects p
-                        LEFT JOIN project_teams pt ON p.id = pt.project_id
-                        LEFT JOIN files f ON f.project_id = p.id
-                    WHERE pt.team_id = %s""", (team_id,))
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                SELECT p.name, p.id, p.description, f.uploaded_at
+                FROM projects p
+                            LEFT JOIN project_teams pt ON p.id = pt.project_id
+                            LEFT JOIN files f ON f.project_id = p.id
+                        WHERE pt.team_id = %s""", (team_id,))
 
-            rows = cur.fetchall()
-            if rows:
-                return generate_project_entities(rows)
-    return []
+                rows = cur.fetchall()
+                if rows:
+                    return generate_project_entities(rows)
+                else:
+                    return []
+    except Exception as e:
+        logger.error(f"Error when fetching projects for team ID {team_id}")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Project fetch by team_id failed")

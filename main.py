@@ -14,6 +14,8 @@ import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+
+from files_table_handler import write_state_path_to_db, get_state_from_db, delete_state_from_db
 from lock_helpers import check_lock_id
 from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
@@ -167,31 +169,34 @@ async def delete_user_by_id(
 
 
 # GET  /state/{project}/{state_name}
-@app.get("/state/{project}/{state_name}", response_class=FileResponse, tags=["auth"])
+@app.get("/state/{project_id}/{state_name}", response_class=FileResponse, tags=["auth"])
 async def get_state(
-    project: str,
+    project_id: str,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> FileResponse:
     if version is not None:
-        path = _versioned_state_path(project, state_name, version)
+        path = _versioned_state_path(project_id, state_name, version)
     else:
-        path = _latest_state_path(project, state_name)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="State not found")
+        path = _latest_state_path(project_id, state_name)
+
+    state_path = get_state_from_db(path, project_id)
+
+    if not os.path.exists(state_path):
+        raise HTTPException(status_code=404, detail="State not found in filesystem")
     return FileResponse(path, media_type="application/octet-stream")
 
 # POST /state/{project}/{state_name}
-@app.post("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
+@app.post("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
 async def put_state(
-    project: str,
+    project_id: str,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)],
     ID: str = None
 ) -> Response:
-    logger.info(f"PUT state called for project={project} state_name={state_name} user={user.username} ID={ID}")
+    logger.info(f"PUT state called for project={project_id} state_name={state_name} user={user.username} ID={ID}")
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty body")
@@ -213,7 +218,11 @@ async def put_state(
         f.write(body)
     with open(latest_path, "wb") as f:
         f.write(body)
-    return Response(status_code=status.HTTP_200_OK)
+
+    # Write path to DB
+    file_id = write_state_path_to_db(latest_path, project_id)
+
+    return Response(status_code=status.HTTP_200_OK, content=f"State ID : {file_id}")
 
 
 # LOCK  /state/{project}
@@ -259,17 +268,17 @@ async def unlock_state(
     return Response(status_code=status.HTTP_200_OK)
 
 # DELETE /state/{project}
-@app.delete("/state/{project}/{state_name}", response_class=Response, tags=["auth"])
+@app.delete("/state/{project_id}/{state_name}", response_class=Response, tags=["auth"])
 async def delete_state(
-    project: str,
+    project_id: str,
     state_name: str,
     user: Annotated[User, Depends(get_auth_user)],
     version: int = None
 ) -> Response:
-    state_dir = _state_dir(project, state_name)
+    state_dir = _state_dir(project_id, state_name)
     logger.info(f"State asked to delete: {state_dir}")
     if version is not None:
-        path = _versioned_state_path(project, state_name, version)
+        path = _versioned_state_path(project_id, state_name, version)
         if os.path.exists(path):
             logger.info(f"Deleting state version: {path}")
             os.remove(path)
@@ -277,22 +286,30 @@ async def delete_state(
             versions = [int(f.split('.tfstate')[0]) for f in os.listdir(state_dir) if f.endswith('.tfstate') and f != 'latest.tfstate']
             if versions:
                 last_version = max(versions)
-                last_path = _versioned_state_path(project, state_name, last_version)
-                latest_path = _latest_state_path(project, state_name)
+                last_path = _versioned_state_path(project_id, state_name, last_version)
+                latest_path = _latest_state_path(project_id, state_name)
                 with open(last_path, "rb") as src, open(latest_path, "wb") as dst:
                     dst.write(src.read())
             else:
                 # If there are no more versions, delete latest.tfstate
-                latest_path = _latest_state_path(project, state_name)
+                latest_path = _latest_state_path(project_id, state_name)
                 if os.path.exists(latest_path):
                     os.remove(latest_path)
+
+            # Clean up the DB
+            delete_state_from_db(path, project_id)
+
         else:
             raise HTTPException(status_code=404, detail="State version not found")
     else:
         # Remove all versions and latest
         for file in os.listdir(state_dir):
             logger.info(f"Deleting state file: {file}")
-            os.remove(os.path.join(state_dir, file))
+            path = os.path.join(state_dir, file)
+            os.remove(path)
+            # Clean up the DB
+            delete_state_from_db(path, project_id)
+
     return Response(status_code=status.HTTP_200_OK)
 
 
