@@ -4,9 +4,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/github/v/release/terraharbor/backend?sort=semver&style=for-the-badge&label=Version&color=%2325c2a0&link=https%3A%2F%2Fgithub.com%2Fterraharbor%2Fbackend%2Freleases) ![License](https://img.shields.io/github/license/terraharbor/backend?style=for-the-badge&logo=gplv3&label=License) ![Build](https://img.shields.io/github/actions/workflow/status/terraharbor/backend/docker-build.yaml?event=push&style=for-the-badge&logo=docker&label=Build&link=https%3A%2F%2Fgithub.com%2Fterraharbor%2Fbackend%2Factions%2Fworkflows%2Fdocker-build.yaml%3Fquery%3Devent%253Apush)
+<a href="https://github.com/terraharbor/backend/releases"><img alt="Release" src="https://img.shields.io/github/v/release/terraharbor/backend?sort=semver&style=for-the-badge&label=Release"></a>
+<a href="https://github.com/terraharbor/backend?tab=GPL-3.0-1-ov-file#readme"><img alt="License" src="https://img.shields.io/github/license/terraharbor/backend?style=for-the-badge&logo=gplv3"></a>
+<a href="https://github.com/terraharbor/backend/actions/workflows/docker-build.yaml?query=event%3Apush"><img alt="Deployment" src="https://img.shields.io/github/actions/workflow/status/terraharbor/backend/docker-build.yaml?event=push&style=for-the-badge&logo=docker&label=Build"></a>
 
-![Unit Tests](https://img.shields.io/github/actions/workflow/status/terraharbor/backend/python-unit-tests.yaml?event=push&style=for-the-badge&logo=python&label=Unit%20Tests&link=https%3A%2F%2Fgithub.com%2Fterraharbor%2Fbackend%2Factions%2Fworkflows%2Fpython-unit-tests.yaml%3Fquery%3Devent%253Apush) ![Terraform Tests](https://img.shields.io/github/actions/workflow/status/terraharbor/backend/terraform-tests.yaml?event=push&style=for-the-badge&logo=terraform&label=Terraform%20Tests&link=https%3A%2F%2Fgithub.com%2Fterraharbor%2Fbackend%2Factions%2Fworkflows%2Fterraform-tests.yaml%3Fquery%3Devent%253Apush)
+<a href="https://github.com/terraharbor/backend/actions/workflows/python-unit-tests.yaml?query=event%3Apush"><img alt="Unit Tests" src="https://img.shields.io/github/actions/workflow/status/terraharbor/backend/python-unit-tests.yaml?event=push&style=for-the-badge&logo=python&label=Unit%20Tests&link=https%3A%2F%2Fgithub.com%2Fterraharbor%2Fbackend%2Factions%2Fworkflows%2Fpython-unit-tests.yaml%3Fquery%3Devent%253Apush"></a>
+<a href="https://github.com/terraharbor/backend/actions/workflows/terraform-tests.yaml?query=event%3Apush"><img alt="Terraform Tests" src="https://img.shields.io/github/actions/workflow/status/terraharbor/backend/terraform-tests.yaml?event=push&style=for-the-badge&logo=terraform&label=Terraform%20Tests&link=https%3A%2F%2Fgithub.com%2Fterraharbor%2Fbackend%2Factions%2Fworkflows%2Fterraform-tests.yaml%3Fquery%3Devent%253Apush"></a>
 
 </div>
 
