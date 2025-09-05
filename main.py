@@ -22,7 +22,7 @@ from path_tools import _state_dir, _latest_state_path, _versioned_state_path
 
 from team_accesses import fetch_team_tokens_for_username
 from projects_tokens import create_project_token, revoke_project_token, has_read_access, has_write_access, \
-    get_accessible_projects_for_user_id, get_all_project_tokens
+    get_accessible_projects_for_user_id, get_all_project_tokens, delete_project_token
 
 from projects import get_projects_for_user_id, get_all_projects, get_project_for_project_id, update_project, \
     delete_project, create_project
@@ -396,26 +396,34 @@ async def list_project_accesses(user: Annotated[User, Depends(get_auth_user)]) -
     return res
 
 
-@app.get("/token/all")
-async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> dict:
-    res = get_all_project_tokens(user.username)
+@app.get("/tokens")
+async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
+    if user.isAdmin:
+        return get_all_project_tokens()
+    else:
+        raise HTTPException(status_code=403, detail="Must be admin to fetch project tokens")
 
-    display = {}
+@app.delete("/tokens/{project_token_id}")
+async def delete_token_by_id(project_token_id: str, user: Annotated[User, Depends(get_auth_user)]) -> dict:
+    if user.isAdmin:
+        return delete_project_token(project_token_id)
+    else:
+        raise HTTPException(status_code=403, detail="Must be admin to delete project tokens")
 
-    for name, res_in in res.items():
-        token_display = []
-        for project_token in res_in:
-            token_display.append({
-                "token": project_token.token,
-                "id": project_token.projectId,
-                "Name": project_token.projectName,
-                "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
-            })
-        display.update({
-            name: token_display
-        })
 
-    return display
+@app.post("/tokens")
+async def create_token(user: Annotated[User, Depends(get_auth_user)], request: Request) -> Response:
+    body = (await request.body()).decode() or "{}"
+
+    data_dict = json.loads(body)
+
+    if data_dict.get('project_id') is None:
+        raise HTTPException(status_code=400, detail="Project ID missing")
+
+    if user.isAdmin:
+        return create_project_token(data_dict['project_id'])
+    else:
+        raise HTTPException(status_code=403, detail="Must be admin to create project tokens")
 
 
 @app.get("/projects")
