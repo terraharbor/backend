@@ -44,7 +44,7 @@ def get_project_for_project_id(project_id: str) -> list[dict]:
             if rows:
                 return generate_project_entities(rows)
             else:
-                return []
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Project not found")
 
 
 def update_project(project_id: int, name: str, desc: str) -> dict:
