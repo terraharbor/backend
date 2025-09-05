@@ -5,7 +5,7 @@ from http import HTTPStatus
 
 from auth_functions import get_db_connection, get_user_id
 from projects import generate_project_entities
-from fastapi import Response
+from fastapi import Response, HTTPException
 from team_accesses import fetch_team_token_for_username_and_team
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ def get_team_for_team_id(team_id: int) -> dict:
                         "userIds": get_users_ids_for_team(team_id)}
             else:
                 logger.error(f"Error when fetching team ID {team_id}")
-                return Response(status_code=HTTPStatus.FORBIDDEN, content={"ERROR": "Team not found by ID"})
+                return Response(status_code=HTTPStatus.FORBIDDEN, content="Team not found by ID")
 
 
 def get_teams_for_user(user_id: int) -> list[dict]:
@@ -80,7 +80,7 @@ def get_teams_for_user(user_id: int) -> list[dict]:
                 return out
             else:
                 logger.error(f"Error when fetching teams for user ID {user_id}")
-                return [{"Error": "notFound"}]
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team not found")
 
 
 def get_teams_for_project_id(project_id: str) -> list[dict]:
@@ -108,7 +108,7 @@ def get_teams_for_project_id(project_id: str) -> list[dict]:
                 return out
             else:
                 logger.error(f"Error when fetching teams for project ID {project_id}")
-                return [{"Error": "notFound"}]
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Team not found")
 
 
 def get_users_ids_for_team(team_id: int) -> list[int]:
@@ -165,7 +165,7 @@ def get_all_teams() -> list[dict]:
                 return out
             else:
                 logger.error("Error when fetching all teams")
-                return [{"Error": "notFound"}]
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Teams not found")
 
 
 def get_users_for_team_id(team_id: int) -> list[dict]:
