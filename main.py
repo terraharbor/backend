@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 from auth_functions import *
 from database_users import get_all_users, update_user, delete_user
-from backend.fastapi_custom_dependency import get_auth_user
+from fastapi_custom_dependency import get_auth_user
 import os, json
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
@@ -209,7 +209,7 @@ async def get_state_status(
     """
     Method to get the status of a state: if a state is locked or not.
     """
-    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(str(project_id), state_name), ".lock")
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
             return {"status": "locked", **json.loads(f.read())}
@@ -267,7 +267,7 @@ async def lock_state(
     """
     Locks the state for a specific project and state name.
     """
-    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(str(project_id), state_name), ".lock")
     body = (await request.body()).decode() or "{}"
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
@@ -292,7 +292,7 @@ async def unlock_state(
     """
     Unlocks the state for a specific project and state name.
     """
-    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(str(project_id), state_name), ".lock")
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
         return Response(status_code=status.HTTP_200_OK)
