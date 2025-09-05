@@ -235,14 +235,14 @@ async def put_state(
 
 
 # LOCK  /state/{project}
-@app.api_route("/state/{project}/{state_name}", methods=["LOCK"], response_class=Response, tags=["auth"])
+@app.api_route("/state/{project_id}/{state_name}", methods=["LOCK"], response_class=Response, tags=["auth"])
 async def lock_state(
-    project: str,
+    project_id: str,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
 ) -> Response:
-    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
     body = (await request.body()).decode() or "{}"
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
@@ -251,15 +251,15 @@ async def lock_state(
         f.write(body)
     return Response(status_code=status.HTTP_200_OK)
 
-# UNLOCK /state/{project}
-@app.api_route("/state/{project}/{state_name}", methods=["UNLOCK"], response_class=Response, tags=["auth"])
+# UNLOCK /state/{project_id}
+@app.api_route("/state/{project_id}/{state_name}", methods=["UNLOCK"], response_class=Response, tags=["auth"])
 async def unlock_state(
-    project: str,
+    project_id: str,
     state_name: str,
     request: Request,
     user: Annotated[User, Depends(get_auth_user)]
 ) -> Response:
-    lock_path = os.path.join(_state_dir(project, state_name), ".lock")
+    lock_path = os.path.join(_state_dir(project_id, state_name), ".lock")
     if not os.path.exists(lock_path):
         # idempotent : ok even if not locked
         return Response(status_code=status.HTTP_200_OK)
