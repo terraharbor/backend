@@ -52,7 +52,7 @@ def get_team_for_team_id(team_id: int) -> dict:
                         "userIds": get_users_ids_for_team(team_id)}
             else:
                 logger.error(f"Error when fetching team ID {team_id}")
-                return Response(status_code=HTTPStatus.FORBIDDEN, content="Team not found by ID")
+                return Response(status_code=HTTPStatus.NOT_FOUND, content="Team not found by ID")
 
 
 def get_teams_for_user(user_id: int) -> list[dict]:
