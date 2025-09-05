@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from tabnanny import check
 from typing import Annotated
 
@@ -149,7 +150,7 @@ async def update_user_id(
     if user.is_admin:
         return update_user(int(user_id), data_dict['username'], data_dict['isAdmin'])
     else:
-        return {"ERROR": "Must be admin to update user"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update user")
 
 
 @app.delete("/users/{user_id}")
@@ -159,7 +160,7 @@ async def delete_user_by_id(
     if user.is_admin:
         return delete_user(int(user_id))
     else:
-        return {"ERROR": "Must be admin to remove user"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove user")
 
 
 # GET  /state/{project}/{state_name}
@@ -375,7 +376,7 @@ async def list_project_tokens(user: Annotated[User, Depends(get_auth_user)]) -> 
         for project_token in res_in:
             token_display.append({
                 "token": project_token.token,
-                "ID": project_token.projectId,
+                "id": project_token.projectId,
                 "Name": project_token.projectName,
                 "Permission": "READ" if project_token.permission == 1 else "WRITE" if project_token.permission == 2 else "READ-WRITE"
             })
@@ -410,14 +411,14 @@ async def update_project_by_id(user: Annotated[User, Depends(get_auth_user)], pr
     if user.is_admin:
         return update_project(int(project_id), data_dict['name'], data_dict['description'])
     else:
-        return {"ERROR": "Must be admin to update project"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update project")
 
 @app.delete("/projects/{project_id}")
 async def delete_project_by_id(user: Annotated[User, Depends(get_auth_user)], project_id: str) -> dict:
     if user.is_admin:
         return delete_project(int(project_id))
     else:
-        return {"ERROR": "Must be admin to remove project"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to remove project")
 
 
 @app.post("/projects")
@@ -429,7 +430,7 @@ async def create_new_project(user: Annotated[User, Depends(get_auth_user)], requ
 
         return create_project(data_dict["name"], data_dict["description"])
     else:
-        return {"ERROR": "Must be admin to create project"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create project")
 
 @app.get("/teams")
 async def get_teams(user: Annotated[User, Depends(get_auth_user)]) -> list[dict]:
@@ -456,7 +457,7 @@ async def update_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
     if user.is_admin:
         return update_team_by_team_id(int(team_id), data_dict['name'], data_dict['description'])
     else:
-        return {"ERROR": "Must be admin to update team"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to update team")
 
 
 @app.delete("/teams/{team_id}")
@@ -464,7 +465,7 @@ async def delete_team_by_id(user: Annotated[User, Depends(get_auth_user)], team_
     if user.is_admin:
         return delete_team(int(team_id))
     else:
-        return {"ERROR": "Must be admin to delete team"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to delete team")
 
 @app.post("/teams")
 async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request: Request) -> dict:
@@ -475,4 +476,4 @@ async def create_new_team(user: Annotated[User, Depends(get_auth_user)], request
     if user.is_admin:
         return create_team(data_dict['name'], data_dict['description'])
     else:
-        return {"ERROR": "Must be admin to create team"}
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Must be admin to create team")

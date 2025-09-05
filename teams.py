@@ -3,6 +3,7 @@ from secrets import token_hex
 
 from auth_functions import get_db_connection, get_user_id
 from projects import generate_project_entities
+from fastapi import Response
 from team_accesses import fetch_team_token_for_username_and_team
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,13 @@ def get_team_for_team_id(team_id: int) -> dict:
             row = cur.fetchone()
             if row:
                 name, desc = row
-                return {"ID": team_id,
+                return {"id": team_id,
                         "name": name,
                         "description": desc,
                         "userIds": get_users_ids_for_team(team_id)}
             else:
                 logger.error(f"Error when fetching team ID {team_id}")
-                return {"Error": "notFound"}
+                return Response(status_code=HTTPStatus.FORBIDDEN, content={"ERROR": "Team not found by ID"})
 
 
 def get_teams_for_user(user_id: int) -> list[dict]:
@@ -69,7 +70,7 @@ def get_teams_for_user(user_id: int) -> list[dict]:
                 out = []
                 for row in rows:
                     team_id, name, desc = row
-                    out.append({"ID": team_id,
+                    out.append({"id": team_id,
                                 "name": name,
                                 "description": desc,
                                 "userIds": get_users_ids_for_team(team_id)})
@@ -97,7 +98,7 @@ def get_teams_for_project_id(project_id: str) -> list[dict]:
                 out = []
                 for row in rows:
                     team_id, name, desc = row
-                    out.append({"ID": team_id,
+                    out.append({"id": team_id,
                                 "name": name,
                                 "description": desc,
                                 "userIds": get_users_ids_for_team(team_id)})
@@ -154,7 +155,7 @@ def get_all_teams() -> list[dict]:
                 out = []
                 for row in rows:
                     team_id, name, desc = row
-                    out.append({"ID": team_id,
+                    out.append({"id": team_id,
                                 "name": name,
                                 "description": desc,
                                 "userIds": get_users_ids_for_team(team_id)})
@@ -182,7 +183,7 @@ def get_users_for_team_id(team_id: int) -> list[dict]:
                 for row in rows:
                     uid, name, is_admin = row
                     out.append(
-                        {"ID": uid,
+                        {"id": uid,
                          "username": name,
                          "isAdmin": is_admin})
                 return out
