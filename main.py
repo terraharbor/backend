@@ -187,7 +187,8 @@ async def get_state(
     if state_path:
         if not os.path.exists(state_path):
             raise HTTPException(status_code=404, detail="State not found in filesystem")
-    return FileResponse(path, media_type="application/octet-stream")
+        return FileResponse(path, media_type="application/octet-stream")
+    raise HTTPException(status_code=404, detail="State not found in filesystem")
 
 
 @app.get("/state/{project_id}")
